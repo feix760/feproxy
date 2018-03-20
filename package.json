@@ -1,0 +1,25 @@
+{
+  "name": "feproxy",
+  "version": "2.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --watch app --watch index.js index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^2.3.2",
+    "iconv-lite": "^0.4.19",
+    "ip": "^1.1.5",
+    "jschardet": "^1.6.0",
+    "koa": "^2.5.0",
+    "koa-route": "^3.2.0",
+    "koa-router": "^7.4.0",
+    "koa-websocket": "^4.1.0",
+    "nodemon": "^1.17.2",
+    "request": "^2.85.0",
+    "request-promise-native": "^1.0.5"
+  }
+}

@@ -1,0 +1,12 @@
+.DS_Store
+*.swp
+*.svn/
+*.orig
+*.project
+*.idea*
+npm-debug.log.*
+*.log
+.vscode/
+/.idea
+/node_modules
+/package-lock.json
