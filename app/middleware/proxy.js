@@ -1,5 +1,8 @@
 
 const http = require('http');
+const https = require('https');
+const keepAliveAgent = new http.Agent({ keepAlive: true });
+const httpsKeepAliveAgent = new https.Agent({ keepAlive: true });
 const url = require('url');
 
 module.exports = async (ctx, next) => {
@@ -13,12 +16,14 @@ module.exports = async (ctx, next) => {
   let res;
   try {
     res = await new Promise((resolve, reject) => {
-      const req = http.request({
+      const isHttps = ctx.protocol === 'https';
+      const req = (isHttps ? https : http)['request']({
         hostname: info.hostname,
         port: info.port,
         path: info.path,
         headers,
         method: 'GET',
+        agent: isHttps ? httpsKeepAliveAgent : keepAliveAgent,
       }, res => {
         res.on('error', err => {
           console.log('res error', err);
@@ -48,7 +53,14 @@ module.exports = async (ctx, next) => {
   ctx.status = res.statusCode;
 
   Object.keys(res.headers).forEach(key => {
-    ctx.set(key, res.headers[key]);
+    const value = res.headers[key];
+    if (!/^connection$/i.test(key)) {
+      try {
+        ctx.set(key, value);
+      } catch (err) {
+        console.warn(`Set header ${key}:${value} error:`, err && err.message);
+      }
+    }
   });
 
   // set for inspect

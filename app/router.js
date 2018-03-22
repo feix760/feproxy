@@ -12,7 +12,6 @@ module.exports = app => {
   app.router.all(proxyRegexp, require('./middleware/proxy'));
 
   app.router.all('/*', async (ctx, next) => {
-    // console.log(ctx);
     ctx.body = 'hello world';
   });
 };

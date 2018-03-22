@@ -140,7 +140,7 @@ module.exports = inspect => {
 
   const decodeBody = (buff, encoding) => {
     return new Promise((resolve, reject) => {
-      if (!(buff instanceof Buffer) || !encoding) {
+      if (!(buff instanceof Buffer) || typeof encoding !== 'string') {
         resolve(buff);
       } else if (encoding.match(/gzip/)) {
         zlib.gunzip(buff, (err, result) => {
