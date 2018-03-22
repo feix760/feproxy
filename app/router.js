@@ -11,7 +11,7 @@ module.exports = app => {
   app.router.all(proxyRegexp, require('./middleware/interceptor'));
   app.router.all(proxyRegexp, require('./middleware/proxy'));
 
-  app.router.all('/*', async (ctx, next) => {
-    ctx.body = 'hello world';
-  });
+  app.router.get('/root.crt', controller.site.crt);
+  app.router.get('/', controller.site.home);
+  app.router.post('/', controller.site.home);
 };

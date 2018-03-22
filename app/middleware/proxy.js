@@ -22,7 +22,7 @@ module.exports = async (ctx, next) => {
         port: info.port,
         path: info.path,
         headers,
-        method: 'GET',
+        method,
         agent: isHttps ? httpsKeepAliveAgent : keepAliveAgent,
       }, res => {
         res.on('error', err => {
@@ -35,10 +35,10 @@ module.exports = async (ctx, next) => {
         console.log('req error', err);
         reject(err);
       });
-      if (method === 'GET') {
-        req.end();
-      } else {
+      if (method === 'POST' || method === 'PUT') {
         ctx.req.pipe(req);
+      } else {
+        req.end();
       }
     });
   } catch (err) {
@@ -68,5 +68,7 @@ module.exports = async (ctx, next) => {
     res,
   };
 
-  ctx.body = res;
+  if (method !== 'HEAD') {
+    ctx.body = res;
+  }
 };

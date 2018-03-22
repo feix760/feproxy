@@ -16,17 +16,27 @@ module.exports = inspect => {
     documentURL: inspect.frame.url,
   });
 
-  const requestWillBeSent = ctx => {
+  const requestWillBeSent = async ctx => {
     ctx.inspect = {
       requestId: ++requestId,
     };
+
+    let postData = '';
+    if (ctx.method === 'POST' && (ctx.is('urlencoded') || ctx.is('json') || ctx.is('text'))) {
+      let { buffer } = await readStream(ctx.req);
+      if (buffer) {
+        // POST的数据也是可以gzip的
+        buffer = await decodeContent(buffer, ctx.get('content-encoding'));
+        postData = buffer2String(buffer);
+      }
+    }
 
     inspect.sendAll('Network.requestWillBeSent', {
       request: {
         url: ctx.url,
         method: ctx.method || 'GET',
         headers: ctx.headers || {},
-        postData: ctx.postData || '',
+        postData: postData || '',
       },
       wallTime: Date.now() / 1000,
       initiator: {
@@ -90,10 +100,10 @@ module.exports = inspect => {
   };
 
   const readResponseBody = async ctx => {
-    let { body } = ctx;
+    let buffer = ctx.body, totalLength = 0;
 
-    if (body instanceof Stream) {
-      body = await getStream(body, {
+    if (buffer instanceof Stream) {
+      const result = await readStream(buffer, {
         onData(chunk) {
           inspect.sendAll('Network.dataReceived', {
             dataLength: chunk.length,
@@ -101,62 +111,37 @@ module.exports = inspect => {
           });
         },
       });
+      buffer = result.buffer;
+      totalLength = result.totalLength;
     }
 
-    let decodedBody = await decodeBody(body, ctx.res.getHeader('content-encoding'));
+    if (!buffer) {
+      inspect.sendAll('Network.loadingFinished', {
+        encodedDataLength: totalLength,
+        ...ctxParams(ctx),
+      });
+      return;
+    }
+
+    let decoded = await decodeContent(buffer, ctx.res.getHeader('content-encoding'));
 
     inspect.sendAll('Network.loadingFinished', {
-      encodedDataLength: decodedBody.length,
+      encodedDataLength: decoded.length,
       ...ctxParams(ctx),
     });
 
-    if (decodedBody instanceof Buffer && ctx.inspect.type.match(/Stylesheet|Document|Script|XHR/)) {
-      try {
-        const charset = jschardet.detect(decodedBody).encoding || 'utf-8';
-        decodedBody = iconv.decode(decodedBody, charset).toString();
-      } catch (err) {
-        console.error('Decode text failed', err);
-      }
+    if (ctx.inspect.type.match(/Stylesheet|Document|Script|XHR/)) {
+      decoded = buffer2String(decoded);
     }
 
-    responseBodyPool.set(ctx.inspect.requestId, decodedBody);
+    responseBodyPool.set(ctx.inspect.requestId, decoded);
   };
 
-  const getStream = (stream, options = {}) => {
-    return new Promise((resolve, reject) => {
-      let buff = new Buffer(0);
-      stream.on('data', chunk => {
-          buff = Buffer.concat([ buff, chunk ]);
-          options.onData && options.onData(chunk);
-        })
-        .on('end', () => {
-          resolve(buff);
-        })
-        .on('error', err => {
-          reject(err);
-        });
-    });
-  };
-
-  const decodeBody = (buff, encoding) => {
-    return new Promise((resolve, reject) => {
-      if (!(buff instanceof Buffer) || typeof encoding !== 'string') {
-        resolve(buff);
-      } else if (encoding.match(/gzip/)) {
-        zlib.gunzip(buff, (err, result) => {
-          err ? reject(err) : resolve(result);
-        });
-      } else if (encoding.match(/deflate/)) {
-        zlib.inflate(buff, (err, result) => {
-          err ? reject(err) : resolve(result);
-        });
-      } else {
-        reject(`Unsupported content encoding: ${encoding}`);
-      }
-    });
-  };
-
-  inspect.on('requestWillBeSent', requestWillBeSent)
+  inspect
+    .on('requestWillBeSent', ctx => {
+      requestWillBeSent(ctx)
+        .catch(err => console.error(err));
+    })
     .on('responseReceived', ctx => {
       responseReceived(ctx);
 
@@ -190,6 +175,63 @@ module.exports = inspect => {
     methods,
   };
 };
+
+function readStream(stream, options = {}) {
+  options = {
+    maxLength: 1024 * 1024 * 2,
+    ...options,
+  };
+  return new Promise((resolve, reject) => {
+    let totalLength = 0;
+    let buffer = new Buffer(0);
+    stream.on('data', chunk => {
+      totalLength += chunk.length;
+      if (totalLength < options.maxLength) {
+        buffer = Buffer.concat([ buffer, chunk ]);
+      } else {
+        buffer = null;
+      }
+      options.onData && options.onData(chunk);
+    })
+      .on('end', () => {
+        resolve({
+          buffer,
+          totalLength,
+        });
+      })
+      .on('error', err => {
+        reject(err);
+      });
+  });
+}
+
+function decodeContent(buffer, encoding) {
+  return new Promise((resolve, reject) => {
+    if (!(buffer instanceof Buffer) || typeof encoding !== 'string' || !encoding) {
+      resolve(buffer);
+    } else if (encoding.match(/gzip/)) {
+      zlib.gunzip(buffer, (err, result) => {
+        err ? reject(err) : resolve(result);
+      });
+    } else if (encoding.match(/deflate/)) {
+      zlib.inflate(buffer, (err, result) => {
+        err ? reject(err) : resolve(result);
+      });
+    } else {
+      reject(`Unsupported content encoding: ${encoding}`);
+    }
+  });
+}
+
+function buffer2String(buffer) {
+  try {
+    const charset = jschardet.detect(buffer).encoding || 'utf-8';
+    return iconv.decode(buffer, charset).toString();
+  } catch (err) {
+    console.error('Decode text failed', err);
+  }
+  return '';
+}
 
 function getResourceType(contentType = '') {
   if (contentType.match('text/css')) {
