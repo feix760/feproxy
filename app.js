@@ -11,9 +11,12 @@ const app = koaWebsocket(new Koa());
 const getServer = require('./lib/getServer')(app);
 
 app.use(async (ctx, next) => {
-    if (ctx.protocol === 'https' && !/^\w+:\/\//.test(ctx.url)) {
-      const socket = ctx.req.socket._parent;
-      const host = socket && socket.proxyHost ? socket.proxyHost.replace(/\.443$/, '') : ctx.hostname;
+    const { proxy } = ctx.req.socket.server;
+    if (ctx.protocol === 'https' && proxy) {
+      if (/^\w+:\/\//.test(ctx.url)) {
+        throw new Error('URL is valid', ctx.url);
+      }
+      const host = `${proxy.hostname}${proxy.port !== 443 ? ':' + proxy.port : ''}`;
       ctx.url = `${ctx.protocol}://${ctx.host}${ctx.url}`;
     }
     ctx.routerPath = ctx.url.replace(/\?[\s\S]*/, '');
@@ -43,8 +46,7 @@ const server = net.createServer(socket => {
           });
           socket.pipe(req);
         } else {
-          socket.proxyHost = `${hostname}:${port}`;
-          getServer(hostname).emit('connection', socket);
+          getServer(hostname, port).emit('connection', socket);
         }
         socket.unshift(buffer2);
         socket.resume();
