@@ -16,5 +16,9 @@ module.exports = ctx => {
 
   extendWebsocket(ws);
 
+  ws.send({
+    name: 222,
+  });
+
   service.inspect.addClient(ws);
 };
