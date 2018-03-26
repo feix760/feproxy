@@ -88,11 +88,17 @@ class Inspect extends EventEmitter {
 
     Object.assign(this.methods, methods);
   }
+
+  nextId() {
+    this._id = this._id || 0;
+    return ++this._id;
+  }
 }
 
 const inspect = new Inspect();
 
 inspect.addModule(require('./common'));
 inspect.addModule(require('./network'));
+inspect.addModule(require('./websocket'));
 
 module.exports = inspect;

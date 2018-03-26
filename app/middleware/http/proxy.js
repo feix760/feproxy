@@ -6,7 +6,8 @@ const httpsKeepAliveAgent = new https.Agent({ keepAlive: true });
 const url = require('url');
 
 module.exports = async (ctx, next) => {
-  const { headers, method } = ctx.req;
+  const { method } = ctx.req;
+  const headers = Object.assign({}, ctx.req.headers);
   const info = url.parse(ctx.url);
 
   if (headers['proxy-connection']) {

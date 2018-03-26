@@ -36,7 +36,9 @@ module.exports = app => {
         ctx.url = getFullURL(ctx, 'wss');
       }
       console.log(ctx.url);
-      await middleware.proxyWebsocket(ctx);
+      await middleware.websocket.inspect(ctx, async () => {
+        await middleware.websocket.proxy(ctx);
+      });
     } else {
       await next();
     }
@@ -44,9 +46,9 @@ module.exports = app => {
 
   app.ws.use(route.all('/ws', controller.ws));
 
-  app.router.all(protocolURL, middleware.inspect);
+  app.router.all(protocolURL, middleware.http.inspect);
   app.router.all(protocolURL, middleware.interceptor);
-  app.router.all(protocolURL, middleware.proxy);
+  app.router.all(protocolURL, middleware.http.proxy);
 
   app.router.get('/root.crt', controller.site.crt);
   app.router.get('/', controller.site.home);

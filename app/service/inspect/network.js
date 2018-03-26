@@ -5,7 +5,6 @@ const iconv = require('iconv-lite');
 const Pool = require('../../lib/pool');
 
 module.exports = inspect => {
-  let requestId = 0;
   const responseBodyPool = new Pool();
 
   const ctxParams = ctx => ({
@@ -18,7 +17,7 @@ module.exports = inspect => {
 
   const requestWillBeSent = async ctx => {
     ctx.inspect = {
-      requestId: ++requestId,
+      requestId: inspect.nextId(),
     };
 
     let postData = '';
