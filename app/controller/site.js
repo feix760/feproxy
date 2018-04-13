@@ -11,9 +11,6 @@ exports.crt = async ctx => {
 };
 
 exports.home = async ctx => {
-  ctx.req.on('data', chunk => {
-    console.log(chunk.toString());
-  });
   ctx.set('content-type', 'text/html;charset=UTF-8');
   ctx.body = fs.readFileSync(path.join(__dirname, '../web/index.html')).toString();
 };

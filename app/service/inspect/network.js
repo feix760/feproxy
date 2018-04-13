@@ -182,19 +182,19 @@ function readStream(stream, options = {}) {
   };
   return new Promise((resolve, reject) => {
     let totalLength = 0;
-    let buffer = new Buffer(0);
+    let chunkList = [];
     stream.on('data', chunk => {
       totalLength += chunk.length;
       if (totalLength < options.maxLength) {
-        buffer = Buffer.concat([ buffer, chunk ]);
+        chunkList.push(chunk);
       } else {
-        buffer = null;
+        chunkList = null;
       }
       options.onData && options.onData(chunk);
     })
       .on('end', () => {
         resolve({
-          buffer,
+          buffer: chunkList && Buffer.concat(chunkList),
           totalLength,
         });
       })
