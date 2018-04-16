@@ -23,7 +23,7 @@ module.exports = async (ctx, next) => {
   const forwarding = {};
 
   setting.rule.some(item => {
-    const to = matchTo(rawURL.replace(/\?[\s\S]$/, ''), item.match, item.to);
+    const to = matchTo(rawURL, item.match, item.to);
     if (to) {
       forwarding.url = to;
       return true;

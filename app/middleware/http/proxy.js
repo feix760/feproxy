@@ -74,7 +74,6 @@ async function requestGet(ctx) {
     res,
   };
 
-
   if (method !== 'HEAD') {
     ctx.body = res;
   }
@@ -99,9 +98,17 @@ async function sendFile(ctx) {
 
 async function sendStatus(ctx) {
   const { destURL } = ctx;
-  const status = destURL.match(/^\w+:\/\/(\d+)$/) && +RegExp.$1 || '';
+  const status = destURL.match(/^\w+:\/\/(\d+)/) && +RegExp.$1 || '';
   if (status) {
     ctx.status = status;
+    if ([ 301, 302 ].indexOf(status) !== -1) {
+      const url = destURL.match(/[?&]url=([^&]+)/i) && RegExp.$1 || '';
+      if (!url) {
+        console.error(`status ${status} url config error`, destURL);
+      } else {
+        ctx.redirect(decodeURIComponent(url));
+      }
+    }
   } else {
     console.error('status forwarding config error', destURL);
     ctx.status = 503;
