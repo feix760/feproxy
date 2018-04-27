@@ -11,7 +11,17 @@ module.exports = async ctx => {
     }
   });
 
-  const res = await new Promise((resolve, reject) => {
+  let res;
+  const msgList = [];
+  ws.on('message', msg => {
+    try {
+      res ? res.send(msg) : msgList.push(msg);
+    } catch (err) {
+      onclose();
+    }
+  });
+
+  res = await new Promise((resolve, reject) => {
     const ws = new WebSocket(ctx.url, {
       headers,
     });
@@ -19,17 +29,11 @@ module.exports = async ctx => {
     ws.on('error', reject);
   });
 
+  msgList.forEach(msg => res.send(msg));
+
   res.on('message', msg => {
     try {
       ws.send(msg);
-    } catch (err) {
-      onclose();
-    }
-  });
-
-  ws.on('message', msg => {
-    try {
-      res.send(msg);
     } catch (err) {
       onclose();
     }
