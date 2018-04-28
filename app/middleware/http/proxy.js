@@ -22,7 +22,7 @@ async function requestGet(ctx) {
   let res;
   try {
     res = await new Promise((resolve, reject) => {
-      const isHttps = ctx.protocol === 'https';
+      const isHttps = /^https:/i.test(destURL);
       const req = (isHttps ? https : http)['request']({
         hostname: destHostname,
         port: info.port,

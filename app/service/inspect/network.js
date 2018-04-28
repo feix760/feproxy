@@ -224,12 +224,12 @@ function decodeContent(buffer, encoding) {
 
 function buffer2String(buffer) {
   try {
-    const charset = jschardet.detect(buffer).encoding || 'utf-8';
+    const charset = jschardet.detect(buffer.slice(0, 1024)).encoding || 'utf-8';
     return iconv.decode(buffer, charset).toString();
   } catch (err) {
     console.error('Decode text failed', err);
   }
-  return '';
+  return buffer;
 }
 
 function getResourceType(contentType = '') {
