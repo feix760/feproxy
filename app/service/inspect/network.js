@@ -26,7 +26,7 @@ module.exports = inspect => {
       if (buffer) {
         // POST的数据也是可以gzip的
         buffer = await decodeContent(buffer, ctx.get('content-encoding'));
-        postData = buffer2String(buffer);
+        postData = buffer2String(buffer) || '';
       }
     }
 
@@ -130,7 +130,7 @@ module.exports = inspect => {
     });
 
     if (ctx.inspect.type.match(/Stylesheet|Document|Script|XHR/)) {
-      decoded = buffer2String(decoded);
+      decoded = buffer2String(decoded) || decoded;
     }
 
     responseBodyPool.set(ctx.inspect.requestId, decoded);
@@ -229,7 +229,7 @@ function buffer2String(buffer) {
   } catch (err) {
     console.error('Decode text failed', err);
   }
-  return buffer;
+  return null;
 }
 
 function getResourceType(contentType = '') {
