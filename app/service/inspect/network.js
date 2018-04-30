@@ -34,7 +34,7 @@ module.exports = inspect => {
       request: {
         url: ctx.url,
         method: ctx.method || 'GET',
-        headers: ctx.headers || {},
+        headers: convertListHeader(ctx.headers || {}),
         postData: postData || '',
       },
       wallTime: Date.now() / 1000,
@@ -65,7 +65,7 @@ module.exports = inspect => {
         url: ctx.url,
         status: res.statusCode,
         statusText: res.statusMessage,
-        headers: resHeaders,
+        headers: convertListHeader(resHeaders),
         headersText: getHeadersText(resHeaders),
         mimeType,
         connectionReused: false,
@@ -88,7 +88,7 @@ module.exports = inspect => {
           sendEnd: 0,
           receiveHeadersEnd: 0,
         },
-        requestHeaders: req.headers,
+        requestHeaders: convertListHeader(req.headers),
         requestHeadersText: getHeadersText(req.headers),
         remoteIPAddress: proxyRes ? proxyRes.socket.remoteAddress : '',
         remotePort: proxyRes ? proxyRes.socket.remotePort : '',
@@ -265,4 +265,16 @@ function getMimeType(headers) {
 
 function getHeadersText(headers) {
   return Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('\r\n');
+}
+
+function convertListHeader(headers) {
+  if (headers) {
+    Object.keys(headers).forEach(key => {
+      const value = headers[key];
+      if (Array.isArray(value)) {
+        headers[key] = value.join('\n');
+      }
+    });
+  }
+  return headers;
 }
