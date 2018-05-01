@@ -19,7 +19,11 @@ function matchTo(str, match, to) {
 
 module.exports = async (ctx, next) => {
   const { url: rawURL } = ctx;
-  const { forwarding: setting } = ctx.app;
+  const setting = {
+    rule: [],
+    host: [],
+    ...ctx.app.forwarding,
+  };
   const forwarding = {};
 
   setting.rule.some(item => {

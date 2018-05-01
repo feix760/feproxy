@@ -11,20 +11,10 @@ const serverFactory = require('./lib/serverFactory')(app);
 
 require('./app/router')(app);
 
-app.forwarding = {
-  rule: [
-    {
-      match: 'http://coolgame.ews.m.jaeapp.com/example/index.html',
-      to: 'http://localhost/',
-    },
-  ],
-  host: [
-    // {
-      // match: 'localhost',
-      // to: '127.0.0.1',
-    // },
-  ],
-};
+try {
+  app.forwarding = require('./run/forwarding');
+} catch (err) {
+}
 
 const server = net.createServer(socket => {
   socket.once('data', buffer => {
