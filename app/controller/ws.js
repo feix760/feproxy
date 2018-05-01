@@ -1,6 +1,4 @@
 
-const service = require('../service');
-
 function extendWebsocket(ws) {
   ws._send = ws._send || ws.send;
   ws.send = obj => {
@@ -16,5 +14,5 @@ module.exports = ctx => {
 
   extendWebsocket(ws);
 
-  service.inspect.addClient(ws);
+  ctx.app.inspect.addClient(ws);
 };

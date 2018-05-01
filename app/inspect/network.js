@@ -2,7 +2,7 @@ const Stream = require('stream');
 const zlib = require('zlib');
 const jschardet = require('jschardet');
 const iconv = require('iconv-lite');
-const Pool = require('../../lib/pool');
+const Pool = require('../lib/pool');
 
 module.exports = inspect => {
   const responseBodyPool = new Pool();

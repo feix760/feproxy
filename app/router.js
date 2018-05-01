@@ -3,6 +3,7 @@ const route = require('koa-route');
 const router = require('koa-router')();
 const controller =  require('./controller');
 const middleware =  require('./middleware');
+const proxy =  require('./proxy');
 
 const protocolURL = /^\w+:\/\/.*/;
 const getFullURL = (ctx, protocol) => {
@@ -17,7 +18,9 @@ const getFullURL = (ctx, protocol) => {
 module.exports = app => {
   app.router = router;
 
+  // 设置routerPath url
   app.use(async (ctx, next) => {
+    ctx.app = app;
     const isHTTPS = ctx.protocol === 'https';
     if (isHTTPS && ctx.req.socket.server.proxy) {
       ctx.url = getFullURL(ctx, 'https');
@@ -29,15 +32,18 @@ module.exports = app => {
 
   app.use(router.routes());
 
+  // websocket 路由
   app.ws.use(async (ctx, next) => {
+    ctx.app = app;
     const isHTTPS = ctx.protocol === 'https';
+    // socket proxy
     if (isHTTPS && ctx.req.socket.server.proxy || protocolURL.test(ctx.url)) {
       if (isHTTPS) {
         ctx.url = getFullURL(ctx, 'wss');
       }
       console.log(ctx.url);
-      await middleware.websocket.inspect(ctx, async () => {
-        await middleware.websocket.proxy(ctx);
+      await middleware.inspect(ctx, async () => {
+        await proxy.websocket(ctx);
       });
     } else {
       await next();
@@ -46,9 +52,9 @@ module.exports = app => {
 
   app.ws.use(route.all('/ws', controller.ws));
 
-  app.router.all(protocolURL, middleware.http.inspect);
+  app.router.all(protocolURL, middleware.inspect);
   app.router.all(protocolURL, middleware.interceptor);
-  app.router.all(protocolURL, middleware.http.proxy);
+  app.router.all(protocolURL, proxy.http);
 
   app.router.get('/root.crt', controller.site.crt);
   app.router.get('/', controller.site.home);

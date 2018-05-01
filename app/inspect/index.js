@@ -2,8 +2,10 @@
 const EventEmitter = require('events');
 
 class Inspect extends EventEmitter {
-  constructor() {
+  constructor(app) {
     super();
+
+    this.app = app;
     this.wsList = [];
     this.methods = {
       default: () => ({
@@ -22,6 +24,11 @@ class Inspect extends EventEmitter {
     };
 
     this.on('message', this.handleMessage.bind(this));
+
+    this.addModule(require('./common'));
+    this.addModule(require('./network'));
+    this.addModule(require('./websocket'));
+    this.addModule(require('./console'));
   }
 
   addClient(ws) {
@@ -84,7 +91,7 @@ class Inspect extends EventEmitter {
   }
 
   addModule(factory) {
-    const { methods = {} } = factory(this);
+    const { methods = {} } = factory(this) || {};
 
     Object.assign(this.methods, methods);
   }
@@ -95,10 +102,4 @@ class Inspect extends EventEmitter {
   }
 }
 
-const inspect = new Inspect();
-
-inspect.addModule(require('./common'));
-inspect.addModule(require('./network'));
-inspect.addModule(require('./websocket'));
-
-module.exports = inspect;
+module.exports = app => new Inspect(app);
