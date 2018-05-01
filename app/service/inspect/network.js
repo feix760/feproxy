@@ -139,13 +139,13 @@ module.exports = inspect => {
   inspect
     .on('requestWillBeSent', ctx => {
       requestWillBeSent(ctx)
-        .catch(err => console.error(err));
+        .catch(err => console.error(ctx.url, err));
     })
     .on('responseReceived', ctx => {
       responseReceived(ctx);
 
       readResponseBody(ctx)
-        .catch(err => console.error(err));
+        .catch(err => console.error(ctx.url, err));
     });
 
   const methods = {

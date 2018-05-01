@@ -62,6 +62,10 @@ const server = net.createServer(socket => {
   });
 });
 
+app.on('error', (err, ctx) => {
+  console.log(ctx.url, err);
+});
+
 const port = 8080;
 server.listen(port, () => {
   console.log(chalk.green(`Server start on http://${ip.address()}:${port}`));

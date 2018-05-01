@@ -2,43 +2,51 @@
 const http = require('http');
 const https = require('https');
 const url = require('url');
+const Stream = require('stream');
 const fs = require('fs-extra');
 const mime = require('mime-types');
-const keepAliveAgent = new http.Agent({ keepAlive: true });
-const httpsKeepAliveAgent = new https.Agent({ keepAlive: true });
+
+const agentOpt = {
+  keepAlive: true,
+  maxSockets: 5,
+  keepAliveMsecs: 1000,
+};
+
+const agent = {
+  http: new http.Agent(agentOpt),
+  https: new https.Agent(agentOpt),
+};
 
 async function requestGet(ctx) {
-  const { destURL, destHostname } = ctx;
+  const { dest } = ctx;
   const { method } = ctx.req;
-  const info = url.parse(destURL);
   const headers = Object.assign({}, ctx.req.headers);
 
+  const proxyAlive = /keep-alive/i.test(headers['proxy-connection'] || '');
   if (headers['proxy-connection']) {
     delete headers['proxy-connection'];
   }
 
-  headers['host'] = info.hostname;
+  headers['host'] = dest.hostname;
 
-  let res;
+  let proxy;
   try {
-    res = await new Promise((resolve, reject) => {
-      const isHttps = /^https:/i.test(destURL);
-      const req = (isHttps ? https : http)['request']({
-        hostname: destHostname,
-        port: info.port,
-        path: info.path,
+    proxy = await new Promise((resolve, reject) => {
+      const req = (dest.protocol === 'https:' ? https : http)['request']({
+        hostname: dest.hostname,
+        port: dest.port,
+        path: dest.path,
         headers,
         method,
-        agent: isHttps ? httpsKeepAliveAgent : keepAliveAgent,
+        agent: agent[dest.protocol.replace(':', '')],
       }, res => {
         res.on('error', err => {
           console.log('res error', err);
         });
-        res.req = req;
-        resolve(res);
+        resolve({ req, res });
       });
       req.on('error', err => {
-        console.log('req error', err);
+        console.log('req error', dest.href, err);
         reject(err);
       });
       if (method === 'POST' || method === 'PUT') {
@@ -56,11 +64,11 @@ async function requestGet(ctx) {
     throw err;
   }
 
-  ctx.status = res.statusCode;
+  ctx.status = proxy.res.statusCode;
 
-  Object.keys(res.headers).forEach(key => {
-    const value = res.headers[key];
-    if (!/^connection$/i.test(key)) {
+  Object.keys(proxy.res.headers).forEach(key => {
+    const value = proxy.res.headers[key];
+    if (!/^Connection$/i.test(key)) {
       try {
         ctx.set(key, value);
       } catch (err) {
@@ -69,19 +77,27 @@ async function requestGet(ctx) {
     }
   });
 
+  if (proxyAlive) {
+    ctx.res.shouldKeepAlive = true;
+    ctx.set('proxy-connection', 'keep-alive');
+  } else {
+    ctx.res.shouldKeepAlive = false;
+    ctx.set('proxy-connection', 'close');
+  }
+
   // set for inspect
-  ctx.proxy = {
-    res,
-  };
+  ctx.proxy = proxy;
 
   if (method !== 'HEAD') {
-    ctx.body = res;
+    // 用PassThrough规避keep-alive导致"socket hang up"
+    const pass = new Stream.PassThrough();
+    proxy.res.pipe(pass);
+    ctx.body = pass;
   }
 }
 
 async function sendFile(ctx) {
-  const { destURL } = ctx;
-  const filePath = destURL.match(/^\w+:\/\/(\/[\s\S]+)$/) && RegExp.$1 || '';
+  const filePath = ctx.dest.path;
   let stat;
   try {
     stat = filePath && await fs.stat(filePath);
@@ -91,45 +107,48 @@ async function sendFile(ctx) {
     ctx.type = mime.lookup(filePath);
     ctx.body = fs.createReadStream(filePath);
   } else {
-    console.error('file forwarding not exists', destURL);
+    console.error('file forwarding not exists', ctx.dest.href);
     ctx.status = 404;
   }
 }
 
 async function sendStatus(ctx) {
-  const { destURL } = ctx;
-  const status = destURL.match(/^\w+:\/\/(\d+)/) && +RegExp.$1 || '';
+  const { dest } = ctx;
+  const status = dest.pathname.replace(/\//g, '');
   if (status) {
     ctx.status = status;
     if ([ 301, 302 ].indexOf(status) !== -1) {
-      const url = destURL.match(/[?&]url=([^&]+)/i) && RegExp.$1 || '';
-      if (!url) {
-        console.error(`status ${status} url config error`, destURL);
+      const href = dest.search.match(/[?&]url=([^&]+)/i) && RegExp.$1 || '';
+      if (!href) {
+        console.error(`status ${status} url config error`, dest.href);
       } else {
-        ctx.redirect(decodeURIComponent(url));
+        ctx.redirect(decodeURIComponent(href));
       }
     }
   } else {
-    console.error('status forwarding config error', destURL);
+    console.error('status forwarding config error', dest.url);
     ctx.status = 503;
   }
 }
 
 module.exports = async (ctx, next) => {
   const { forwarding = {} } = ctx;
-  ctx.destURL = forwarding.url || ctx.url;
-  ctx.destHostname = forwarding.hostname || url.parse(ctx.destURL).hostname;
-  const destProtocol = (ctx.destURL.match(/^(\w+):/) && RegExp.$1 || '').toLowerCase();
+  const href = forwarding.url || ctx.url;
 
-  switch (destProtocol) {
-    case 'http':
-    case 'https':
+  const dest = ctx.dest = {
+    ...url.parse(href),
+    ...forwarding,
+  };
+
+  switch (dest.protocol) {
+    case 'http:':
+    case 'https:':
       await requestGet(ctx);
       break;
-    case 'file':
+    case 'file:':
       await sendFile(ctx);
       break;
-    case 'status':
+    case 'status:':
       await sendStatus(ctx);
       break;
     default:
