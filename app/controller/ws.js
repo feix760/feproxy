@@ -9,6 +9,7 @@ function extendWebsocket(ws) {
   };
 };
 
+// chrome inpect websocket
 module.exports = ctx => {
   const ws = ctx.websocket;
 

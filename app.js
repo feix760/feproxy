@@ -16,7 +16,7 @@ app.inspect = require('./app/inspect')(app);
 require('./app/router')(app);
 
 app.on('error', (err, ctx) => {
-  console.log(ctx.url, err);
+  console.error(ctx.url, err);
 });
 
 const server = require('./lib/server')(app);

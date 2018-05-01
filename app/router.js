@@ -50,6 +50,7 @@ module.exports = app => {
     }
   });
 
+  // chrome inspect websocket
   app.ws.use(route.all('/ws', controller.ws));
 
   app.router.all(protocolURL, middleware.inspect);
