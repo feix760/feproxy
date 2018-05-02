@@ -71,12 +71,16 @@ module.exports = inspect => {
   };
 
   inspect.on('webSocketWillSendHandshakeRequest', ctx => {
-      webSocketWillSendHandshakeRequest(ctx)
-        .catch(err => console.error(err));
+      if (inspect.hasClient()) {
+        webSocketWillSendHandshakeRequest(ctx)
+          .catch(err => console.error(err));
+      }
     })
     .on('webSocketHandshakeResponseReceived', ctx => {
-      webSocketHandshakeResponseReceived(ctx)
-        .catch(err => console.error(err));
+      if (inspect.hasClient()) {
+        webSocketHandshakeResponseReceived(ctx)
+          .catch(err => console.error(err));
+      }
     });
 
   const methods = {

@@ -68,6 +68,10 @@ class Inspect extends EventEmitter {
     });
   }
 
+  hasClient() {
+    return !!this.wsList.length;
+  }
+
   timestamp() {
     this._timestamp = this._timestamp || Date.now();
     return (Date.now() - this._timestamp) / 1000;

@@ -138,14 +138,18 @@ module.exports = inspect => {
 
   inspect
     .on('requestWillBeSent', ctx => {
-      requestWillBeSent(ctx)
-        .catch(err => console.error(ctx.url, err));
+      if (inspect.hasClient()) {
+        requestWillBeSent(ctx)
+          .catch(err => console.error(ctx.url, err));
+      }
     })
     .on('responseReceived', ctx => {
-      responseReceived(ctx);
+      if (inspect.hasClient()) {
+        responseReceived(ctx);
 
-      readResponseBody(ctx)
-        .catch(err => console.error(ctx.url, err));
+        readResponseBody(ctx)
+          .catch(err => console.error(ctx.url, err));
+      }
     });
 
   const methods = {
