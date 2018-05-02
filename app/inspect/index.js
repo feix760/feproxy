@@ -1,6 +1,13 @@
 
 const EventEmitter = require('events');
 
+const modules = [
+  require('./common'),
+  require('./network'),
+  require('./websocket'),
+  require('./console'),
+];
+
 class Inspect extends EventEmitter {
   constructor(app) {
     super();
@@ -25,10 +32,17 @@ class Inspect extends EventEmitter {
 
     this.on('message', this.handleMessage.bind(this));
 
-    this.addModule(require('./common'));
-    this.addModule(require('./network'));
-    this.addModule(require('./websocket'));
-    this.addModule(require('./console'));
+    modules.forEach(item => this.addModule(item));
+  }
+
+  addModule(factory) {
+    const { methods = {} } = factory(this) || {};
+
+    Object.assign(this.methods, methods);
+  }
+
+  hasClient() {
+    return !!this.wsList.length;
   }
 
   addClient(ws) {
@@ -43,7 +57,6 @@ class Inspect extends EventEmitter {
     });
 
     ws.on('message', msg => {
-      // console.log(msg);
       try {
         msg = JSON.parse(msg);
       } catch (err) {
@@ -68,15 +81,6 @@ class Inspect extends EventEmitter {
     });
   }
 
-  hasClient() {
-    return !!this.wsList.length;
-  }
-
-  timestamp() {
-    this._timestamp = this._timestamp || Date.now();
-    return (Date.now() - this._timestamp) / 1000;
-  }
-
   async handleMessage({ msg, ws }) {
     const { method, id } = msg;
 
@@ -94,15 +98,14 @@ class Inspect extends EventEmitter {
     });
   }
 
-  addModule(factory) {
-    const { methods = {} } = factory(this) || {};
-
-    Object.assign(this.methods, methods);
-  }
-
   nextId() {
     this._id = this._id || 0;
     return ++this._id;
+  }
+
+  timestamp() {
+    this._timestamp = this._timestamp || Date.now();
+    return (Date.now() - this._timestamp) / 1000;
   }
 }
 

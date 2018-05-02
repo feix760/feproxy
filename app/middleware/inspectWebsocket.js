@@ -1,7 +1,7 @@
 
 module.exports = async (ctx, next) => {
-  ctx.app.inspect.emit('requestWillBeSent', ctx);
+  ctx.app.inspect.emit('webSocketWillSendHandshakeRequest', ctx);
   await next();
-  ctx.app.inspect.emit('responseReceived', ctx);
+  ctx.app.inspect.emit('webSocketHandshakeResponseReceived', ctx);
 };
 

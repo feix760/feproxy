@@ -5,8 +5,11 @@ const path = require('path');
 const ip = require('ip');
 const Koa = require('koa');
 const koaWebsocket = require('koa-websocket');
+const onerror = require('koa-onerror');
 
 const app = koaWebsocket(new Koa());
+
+require('./app/extend/context')(app);
 
 const forwardingPath = path.join(__dirname, './run/forwarding');
 app.forwarding = fs.existsSync(forwardingPath) && require(forwardingPath);
@@ -14,6 +17,8 @@ app.forwarding = fs.existsSync(forwardingPath) && require(forwardingPath);
 app.inspect = require('./app/inspect')(app);
 
 require('./app/router')(app);
+
+onerror(app);
 
 app.on('error', (err, ctx) => {
   console.error(ctx.url, err);
