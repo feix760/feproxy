@@ -12,6 +12,12 @@ module.exports = async ctx => {
   });
 
   let res;
+
+  const onclose = () => {
+    ws.close();
+    res.close();
+  };
+
   const msgList = [];
   ws.on('message', msg => {
     try {
@@ -38,11 +44,6 @@ module.exports = async ctx => {
       onclose();
     }
   });
-
-  const onclose = () => {
-    ws.close();
-    res.close();
-  };
 
   res.on('close', onclose)
     .on('error', onclose);

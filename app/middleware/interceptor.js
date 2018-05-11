@@ -1,6 +1,4 @@
 
-const path = require('path');
-const fs = require('fs-extra');
 const url = require('url');
 
 function matchTo(str, match, to) {
@@ -32,6 +30,7 @@ module.exports = async (ctx, next) => {
       forwarding.url = to;
       return true;
     }
+    return false;
   });
 
   const hostname = url.parse(forwarding.url || rawURL).hostname;
@@ -42,6 +41,7 @@ module.exports = async (ctx, next) => {
       forwarding.hostname = to;
       return true;
     }
+    return false;
   });
 
   ctx.forwarding = forwarding;

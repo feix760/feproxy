@@ -7,7 +7,7 @@ function extendWebsocket(ws) {
     }
     ws._send(obj);
   };
-};
+}
 
 // chrome inpect websocket
 module.exports = ctx => {

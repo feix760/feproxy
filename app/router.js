@@ -1,8 +1,8 @@
 
 const koaRouter = require('koa-router');
-const controller =  require('./controller');
-const middleware =  require('./middleware');
-const proxy =  require('./proxy');
+const controller = require('./controller');
+const middleware = require('./middleware');
+const proxy = require('./proxy');
 
 module.exports = app => {
   const router = koaRouter();

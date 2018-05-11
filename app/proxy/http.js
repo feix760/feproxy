@@ -27,17 +27,19 @@ async function requestGet(ctx) {
     delete headers['proxy-connection'];
   }
 
-  headers['host'] = dest.hostname;
+  headers.host = dest.hostname;
 
   let proxy;
   try {
     proxy = await new Promise((resolve, reject) => {
-      const req = (dest.protocol === 'https:' ? https : http)['request']({
+      const req = (dest.protocol === 'https:' ? https : http).request({
         hostname: dest.hostname,
         port: dest.port,
         path: dest.path,
         headers,
         method,
+        rejectUnauthorized: false,
+        requestCert: true,
         agent: agent[dest.protocol.replace(':', '')],
       }, res => {
         res.on('error', err => {
@@ -102,6 +104,7 @@ async function sendFile(ctx) {
   try {
     stat = filePath && await fs.stat(filePath);
   } catch (err) {
+    // eslint-disable-line
   }
   if (stat && stat.isFile()) {
     ctx.type = mime.lookup(filePath);
@@ -155,4 +158,4 @@ module.exports = async (ctx, next) => {
       await next();
       break;
   }
-}
+};

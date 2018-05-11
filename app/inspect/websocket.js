@@ -40,7 +40,7 @@ module.exports = inspect => {
         statusText: 'Switching Protocols',
         headers: responseHeaders,
         headersText: getHeadersText(responseHeaders),
-        requestHeaders: requestHeaders,
+        requestHeaders,
         requestHeadersText: getHeadersText(requestHeaders),
       },
     });
@@ -71,11 +71,11 @@ module.exports = inspect => {
   };
 
   inspect.on('webSocketWillSendHandshakeRequest', ctx => {
-      if (inspect.hasClient()) {
-        webSocketWillSendHandshakeRequest(ctx)
-          .catch(err => console.error(err));
-      }
-    })
+    if (inspect.hasClient()) {
+      webSocketWillSendHandshakeRequest(ctx)
+        .catch(err => console.error(err));
+    }
+  })
     .on('webSocketHandshakeResponseReceived', ctx => {
       if (inspect.hasClient()) {
         webSocketHandshakeResponseReceived(ctx)

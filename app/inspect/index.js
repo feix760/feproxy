@@ -53,7 +53,7 @@ class Inspect extends EventEmitter {
       if (index > -1) {
         this.wsList.splice(index, 1);
       }
-      ws.send = new Function();
+      ws.send = () => {};
     });
 
     ws.on('message', msg => {

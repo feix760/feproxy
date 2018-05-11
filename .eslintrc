@@ -1,0 +1,28 @@
+{
+  "extends": "eslint-config-egg",
+  "parserOptions": {
+    "ecmaVersion": 8,
+    "sourceType": "module"
+  },
+  "rules": {
+    "valid-jsdoc": "off",
+    "eol-last": "off",
+    "strict": "off",
+    "no-alert": "off",
+    "no-irregular-whitespace": [
+      "error",
+      {
+        "skipComments": true
+      }
+    ]
+  },
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "globals": {
+  },
+  "plugins": [
+  ],
+  "parser": "babel-eslint"
+}

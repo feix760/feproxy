@@ -99,7 +99,8 @@ module.exports = inspect => {
   };
 
   const readResponseBody = async ctx => {
-    let buffer = ctx.body, totalLength = 0;
+    let buffer = ctx.body,
+      totalLength = 0;
 
     if (buffer instanceof Stream) {
       const result = await readStream(buffer, {
@@ -156,16 +157,16 @@ module.exports = inspect => {
     'Network.enable': () => ({
       result: true,
     }),
-    'Network.getResponseBody'({ params }) {
+    'Network.getResponseBody': function({ params }) {
       const data = responseBodyPool.get(params.requestId);
       if (data) {
         return data instanceof Buffer ? {
-            base64Encoded: true,
-            body: data.toString('base64'),
-          } : {
-            base64Encoded: false,
-            body: data,
-          };
+          base64Encoded: true,
+          body: data.toString('base64'),
+        } : {
+          base64Encoded: false,
+          body: data,
+        };
       }
       return {
         base64Encoded: false,
@@ -265,7 +266,7 @@ function getMimeType(headers) {
   const contentType = headers['content-type'] || headers['Content-Type'] || '';
 
   return contentType.match(/([^;]*)/) && RegExp.$1;
-};
+}
 
 function getHeadersText(headers) {
   return Object.keys(headers).map(key => `${key}: ${headers[key]}`).join('\r\n');

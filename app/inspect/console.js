@@ -1,3 +1,3 @@
 
-module.exports = inspect => {
+module.exports = inspect => { // eslint-disable-line
 };

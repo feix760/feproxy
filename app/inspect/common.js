@@ -20,6 +20,8 @@ module.exports = inspect => {
           },
         });
         break;
+      default:
+        break;
     }
   });
 
@@ -33,7 +35,7 @@ module.exports = inspect => {
         frameTree: {
           frame,
           resources: [],
-        }
+        },
       }),
     },
   };
