@@ -51,7 +51,7 @@ async function requestGet(ctx) {
         console.error('req error', dest.href, err);
         reject(err);
       });
-      if (method === 'POST' || method === 'PUT') {
+      if (method === 'POST' || method === 'PUT' || method === 'OPTIONS') {
         ctx.req.pipe(req);
       } else {
         req.end();

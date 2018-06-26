@@ -6,6 +6,7 @@ const modules = [
   require('./network'),
   require('./websocket'),
   require('./console'),
+  require('./dom'),
 ];
 
 class Inspect extends EventEmitter {
@@ -86,7 +87,7 @@ class Inspect extends EventEmitter {
 
     const handler = this.methods[method] || this.methods.default;
 
-    let result = handler(msg);
+    let result = handler(msg, ws);
 
     if (result instanceof Promise) {
       result = await result;
@@ -99,7 +100,7 @@ class Inspect extends EventEmitter {
   }
 
   nextId() {
-    this._id = this._id || 0;
+    this._id = this._id || 100;
     return ++this._id;
   }
 
