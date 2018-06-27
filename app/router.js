@@ -26,7 +26,7 @@ module.exports = app => {
   router.all(wsURL, proxy.websocket);
 
   // ------ site ----------
-  router.get('/root.crt', controller.site.crt);
+  router.get('/feproxy.crt', controller.site.crt);
   router.get('/', controller.site.home);
   router.post('/', controller.site.home);
 

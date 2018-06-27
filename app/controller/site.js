@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 exports.crt = async ctx => {
-  const crtFile = path.join(__dirname, '../../run/root.crt');
+  const crtFile = path.join(__dirname, '../../run/feproxy.crt');
   if (fs.existsSync(crtFile)) {
     ctx.set('content-type', 'application/octet-stream');
     ctx.body = fs.readFileSync(crtFile);
