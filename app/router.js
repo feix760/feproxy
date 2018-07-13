@@ -11,7 +11,7 @@ module.exports = app => {
   app.ws.use(routes);
 
   router.all(/^\w+:\/\/.*/, async (ctx, next) => {
-    console.log(ctx.url);
+    // console.log(ctx.url);
     await next();
   });
 
@@ -29,6 +29,8 @@ module.exports = app => {
   router.get('/feproxy.crt', controller.site.crt);
   router.get('/', controller.site.home);
   router.post('/', controller.site.home);
+  router.get('/log', controller.site.log);
+  router.get('/log.js', controller.site.logJS);
 
   // chrome inspect websocket
   router.get('/ws', controller.ws);

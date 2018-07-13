@@ -15,3 +15,26 @@ exports.home = async ctx => {
   ctx.set('content-type', 'text/html;charset=UTF-8');
   ctx.body = fs.readFileSync(path.join(__dirname, '../web/index.html')).toString();
 };
+
+exports.log = async ctx => {
+  const str = ctx.query.str;
+
+  let obj;
+  try {
+    obj = JSON.parse(str);
+  } catch (err) {
+    obj = str;
+  }
+
+  if (obj instanceof Array) {
+    console.log(...obj);
+  } else {
+    console.log(obj);
+  }
+  ctx.status = 204;
+};
+
+exports.logJS = async ctx => {
+  ctx.set('content-type', 'text/javascript;charset=UTF-8');
+  ctx.body = fs.readFileSync(path.join(__dirname, '../web/log.js')).toString();
+};
