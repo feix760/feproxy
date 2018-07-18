@@ -50,7 +50,7 @@ const projects = [
 
 module.exports = inspect => { // eslint-disable-line
   const {
-    frame
+    frame,
   } = inspect;
 
   const rootNodeId = 1;
@@ -151,7 +151,7 @@ module.exports = inspect => { // eslint-disable-line
       return root;
     }
     const children = root.children || [];
-    for (item of children) {
+    for (const item of children) {
       const result = work(item, fn);
       if (result) {
         return result;
@@ -178,12 +178,12 @@ module.exports = inspect => { // eslint-disable-line
     'DOM.enable': () => ({
       result: true,
     }),
-    'DOM.getDocument' () {
+    'DOM.getDocument': function() {
       return {
         root: setAttributes(rootNode),
       };
     },
-    'DOM.requestChildNodes'(data, ws) {
+    'DOM.requestChildNodes': function(data, ws) {
       const { nodeId } = data.params;
       ws.send({
         method: 'DOM.setChildNodes',
@@ -194,7 +194,7 @@ module.exports = inspect => { // eslint-disable-line
       });
       return {};
     },
-    'DOM.resolveNode'(data, ws) {
+    'DOM.resolveNode': function(data, ws) {
       const { nodeId } = data.params;
 
       const node = findByNodeId(rootNode, nodeId);
@@ -204,15 +204,15 @@ module.exports = inspect => { // eslint-disable-line
         ws.send({
           method: 'DOM.attributeModified',
           params: {
-            name : 'enable',
+            name: 'enable',
             nodeId,
-            value : '' + node.attrs.enable,
+            value: '' + node.attrs.enable,
           },
         });
       }
       return {};
     },
-    'DOM.removeNode'(data, ws) {
+    'DOM.removeNode': function(data, ws) {
       const { nodeId } = data.params;
 
       const node = findByNodeId(rootNode, nodeId);
@@ -227,7 +227,7 @@ module.exports = inspect => { // eslint-disable-line
 
       return {};
     },
-    'DOM.setAttributeValue'(data, ws) {
+    'DOM.setAttributeValue': function(data, ws) {
       const { nodeId, name, value } = data.params;
 
       const node = findByNodeId(rootNode, nodeId);
@@ -246,7 +246,7 @@ module.exports = inspect => { // eslint-disable-line
 
       return {};
     },
-    'DOM.setAttributesAsText'(data, ws) {
+    'DOM.setAttributesAsText': function(data, ws) {
       const { nodeId, text } = data.params;
 
       const node = findByNodeId(rootNode, nodeId);
@@ -269,14 +269,12 @@ module.exports = inspect => { // eslint-disable-line
 
       return {};
     },
-    'DOM.copyTo'(data, ws) {
+    'DOM.copyTo': function(data, ws) {
       const { nodeId } = data.params;
-
       return {};
     },
-    'DOM.moveTo'(data, ws) {
+    'DOM.moveTo': function(data, ws) {
       const { nodeId } = data.params;
-
       return {};
     },
   };

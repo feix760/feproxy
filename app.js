@@ -1,17 +1,17 @@
 
 const chalk = require('chalk');
-const fs = require('fs');
-const path = require('path');
 const ip = require('ip');
 const Koa = require('koa');
 const koaWebsocket = require('koa-websocket');
 
 const app = koaWebsocket(new Koa());
 
+app.hostname = 'feproxy.org';
+app.port = 8080;
+
 require('./app/extend/context')(app);
 
-const forwardingPath = path.join(__dirname, './run/forwarding.js');
-app.forwarding = fs.existsSync(forwardingPath) && require(forwardingPath);
+app.forwarding = require('./lib/forwarding')(app);
 
 app.inspect = require('./app/inspect')(app);
 
@@ -19,9 +19,8 @@ require('./app/router')(app);
 
 const server = require('./lib/server')(app);
 
-const port = 8080;
-server.listen(port, () => {
-  console.log(chalk.green(`Server start on http://${ip.address()}:${port}`));
+server.listen(app.port, () => {
+  console.log(chalk.green(`Server start on http://${ip.address()}:${app.port}`));
 });
 
 app.on('error', (err, ctx) => {

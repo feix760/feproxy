@@ -1,6 +1,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const chalk = require('chalk');
 
 exports.crt = async ctx => {
   const crtFile = path.join(__dirname, '../../run/feproxy.crt');
@@ -17,7 +18,7 @@ exports.home = async ctx => {
 };
 
 exports.log = async ctx => {
-  const str = ctx.query.str;
+  const { index, str } = ctx.query;
 
   let obj;
   try {
@@ -27,9 +28,9 @@ exports.log = async ctx => {
   }
 
   if (obj instanceof Array) {
-    console.log(...obj);
+    console.log(chalk.yellow(index), ...obj);
   } else {
-    console.log(obj);
+    console.log(chalk.yellow(index), obj);
   }
   ctx.status = 204;
 };
