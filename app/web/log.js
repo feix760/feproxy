@@ -1,10 +1,22 @@
 /* eslint-disable */
 
-var index = 0;
-var _log = console.log;
+(function() {
+  var index = 0;
 
-console.log = function() {
-  _log.apply(console, args);
-  var args = [].slice.call(arguments);
-  new Image().src = '//feproxy.org/log?str=' + JSON.stringify(args) + '&index=' + (++index);
-};
+  function inject(obj, method) {
+    var fn = obj[method];
+
+    obj[method] = function() {
+      var args = [].slice.call(arguments);
+      fn.apply(obj, args);
+      new Image().src = '//feproxy.org/log?str=' + JSON.stringify(args) + '&index=' + (++index);
+    };
+  }
+
+  if (!/[?&]_nolog\b/.test(location.href)) {
+    inject(console, 'error');
+    inject(console, 'warn');
+    inject(console, 'log');
+    inject(console, 'info');
+  }
+})();
