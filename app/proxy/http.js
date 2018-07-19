@@ -115,9 +115,10 @@ async function sendFile(ctx) {
   }
 }
 
+// status:///301?url=http://127.0.0.1:9000/portal.html
 async function sendStatus(ctx) {
   const { dest } = ctx;
-  const status = dest.pathname.replace(/\//g, '');
+  const status = +dest.pathname.replace(/\//g, '');
   if (status) {
     ctx.status = status;
     if ([ 301, 302 ].indexOf(status) !== -1) {
