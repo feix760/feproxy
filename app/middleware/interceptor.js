@@ -3,8 +3,8 @@ const url = require('url');
 
 function matchTo(str, match, to) {
   if (typeof match === 'string') {
-    if (str === match) {
-      return to;
+    if (str.startsWith(match)) {
+      return to.replace('$1', str.replace(match, ''));
     }
   } else {
     const m = str.match(match);
