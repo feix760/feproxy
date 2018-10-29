@@ -21,7 +21,7 @@ const getWebpackConfig = () => {
         '!./web/page/**/component/**',
       ],
     },
-    devtool: isProduction ? undefined : 'cheap-module-source-map',
+    devtool: isProduction ? undefined : 'eval',
     output: {
       path: path.join(__dirname, output),
       filename: `js/[name]${isProduction ? '.[chunkhash:8]' : ''}.js`,
@@ -29,13 +29,11 @@ const getWebpackConfig = () => {
     },
     module: {
       rules: [
-        // {
-        // test: /\.js$/,
-        // exclude: /node_modules/,
-        // use: [
-        // 'babel-loader',
-        // ],
-        // },
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          use: 'babel-loader',
+        },
         {
           test: /\.css$/,
           use: ExtractTextPlugin.extract({
@@ -66,7 +64,7 @@ const getWebpackConfig = () => {
           }),
         },
         {
-          test: /\.(png|svg|jpg|jpeg|gif|wav|mp4)$/,
+          test: /\.(png|svg|jpg|jpeg|gif|wav|mp4|ttf|woff)$/,
           use: {
             loader: 'url-loader',
             options: {
