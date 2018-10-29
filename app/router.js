@@ -27,10 +27,7 @@ module.exports = app => {
 
   // ------ site ----------
   router.get('/feproxy.crt', controller.site.crt);
-  router.get('/', controller.site.home);
-  router.post('/', controller.site.home);
   router.get('/log', controller.site.log);
-  router.get('/log.js', controller.site.logJS);
 
   // chrome inspect websocket
   router.get('/ws', controller.ws);

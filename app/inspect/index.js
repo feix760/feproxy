@@ -5,8 +5,6 @@ const modules = [
   require('./common'),
   require('./network'),
   require('./websocket'),
-  require('./console'),
-  require('./dom'),
 ];
 
 class Inspect extends EventEmitter {

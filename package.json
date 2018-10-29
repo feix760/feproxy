@@ -1,17 +1,20 @@
 {
   "name": "feproxy",
   "version": "2.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "An node proxy server for frontend development",
+  "main": "app.js",
   "scripts": {
-    "start": "nodemon --watch app --watch lib --watch run --watch app.js app.js",
+    "start": "cross-env NODE_ENV=production node app.js",
+    "dev": "webpack -w & nodemon --watch app --watch ./app.js app.js",
+    "build": "cross-env NODE_ENV=production webpack",
     "lint": "eslint .",
     "lint-fix": "eslint --fix ."
   },
-  "author": "",
+  "author": "382184760@qq.com",
   "license": "ISC",
   "dependencies": {
     "chalk": "^2.3.2",
+    "cross-env": "^5.2.0",
     "fs-extra": "^5.0.0",
     "iconv-lite": "^0.4.19",
     "ip": "^1.1.5",
@@ -19,19 +22,29 @@
     "koa": "^2.5.0",
     "koa-body": "^2.5.0",
     "koa-router": "^7.4.0",
+    "koa-static": "^5.0.0",
     "koa-websocket": "^4.1.0",
     "mime-types": "^2.1.18",
     "mkdirp": "^0.5.1",
     "node-forge": "^0.7.4",
-    "nodemon": "^1.17.2",
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
     "ws": "^5.1.0"
   },
   "devDependencies": {
     "babel-eslint": "^8.1.2",
+    "clean-webpack-plugin": "^0.1.19",
+    "copy-webpack-plugin": "^4.5.4",
     "eslint": "^4.7.2",
     "eslint-config-egg": "^4.2.0",
-    "eslint-loader": "^1.9.0"
+    "eslint-loader": "^1.9.0",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "glob-all": "^3.1.0",
+    "html-webpack-plugin": "^3.2.0",
+    "nodemon": "^1.17.2",
+    "uglifyjs-webpack-plugin": "^2.0.1",
+    "webpack": "^4.23.1",
+    "webpack-chunk-hash": "^0.6.0",
+    "webpack-cli": "^3.1.2"
   }
 }
