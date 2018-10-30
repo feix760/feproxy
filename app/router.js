@@ -1,5 +1,6 @@
 
 const koaRouter = require('koa-router');
+const koaBody = require('koa-body');
 const controller = require('./controller');
 const middleware = require('./middleware');
 const proxy = require('./proxy');
@@ -28,6 +29,8 @@ module.exports = app => {
   // ------ site ----------
   router.get('/feproxy.crt', controller.site.crt);
   router.get('/log', controller.site.log);
+  router.get('/getConfig', controller.site.getConfig);
+  router.post('/setConfig', koaBody(), controller.site.setConfig);
 
   // chrome inspect websocket
   router.get('/ws', controller.ws);

@@ -7,11 +7,9 @@ const koaStatic = require('koa-static');
 
 const app = koaWebsocket(new Koa());
 
-app.config = require('./config');
+app.config = require('./lib/config')();
 
 require('./app/extend/context')(app);
-
-app.forwarding = require('./lib/forwarding')(app);
 
 app.inspect = require('./app/inspect')(app);
 

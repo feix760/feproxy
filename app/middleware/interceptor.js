@@ -17,34 +17,35 @@ function matchTo(str, match, to) {
 
 module.exports = async (ctx, next) => {
   const { url: rawURL } = ctx;
-  const setting = {
-    rule: [],
-    host: [],
-    ...ctx.app.forwarding,
+  const forwarding = {
+    rules: [],
+    hosts: [],
+    ...ctx.app.config.forwarding,
   };
-  const forwarding = {};
 
-  setting.rule.some(item => {
+  const result = {};
+
+  forwarding.rules.some(item => {
     const to = matchTo(rawURL, item.match, item.to);
     if (to) {
-      forwarding.url = to;
+      result.url = to;
       return true;
     }
     return false;
   });
 
-  const hostname = url.parse(forwarding.url || rawURL).hostname;
+  const hostname = url.parse(result.url || rawURL).hostname;
 
-  setting.host.some(item => {
+  forwarding.hosts.some(item => {
     const to = matchTo(hostname, item.match, item.to);
     if (to) {
-      forwarding.hostname = to;
+      result.hostname = to;
       return true;
     }
     return false;
   });
 
-  ctx.forwarding = forwarding;
+  ctx.forwarding = result;
 
   await next();
 };

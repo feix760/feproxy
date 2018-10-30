@@ -28,3 +28,13 @@ exports.log = async ctx => {
   }
   ctx.status = 204;
 };
+
+exports.setConfig = async ctx => {
+  ctx.app.config.setConfig(ctx.request.body);
+
+  ctx.body = ctx.app.config;
+};
+
+exports.getConfig = async ctx => {
+  ctx.body = ctx.app.config;
+};

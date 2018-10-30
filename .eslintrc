@@ -1,5 +1,8 @@
 {
-  "extends": "eslint-config-egg",
+  "extends": [
+    "eslint-config-egg",
+    "plugin:react/recommended"
+  ],
   "parserOptions": {
     "ecmaVersion": 8,
     "sourceType": "module"
@@ -24,5 +27,10 @@
   },
   "plugins": [
   ],
-  "parser": "babel-eslint"
+  "parser": "babel-eslint",
+  "settings": {
+    "react": {
+      "version": "16.6"
+    }
+  }
 }
