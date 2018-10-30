@@ -304,7 +304,7 @@ class Component extends React.Component {
   }
 }
 
-const Root = connect(state => {
+var Root = connect(state => {
   return state;
 })(Component);
 

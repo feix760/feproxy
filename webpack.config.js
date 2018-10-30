@@ -93,7 +93,7 @@ const getWebpackConfig = () => {
         }
       }),
       // css output path
-      new ExtractTextPlugin(`css/[name]${isProduction ? '.[contenthash:8]' : ''}.css`),
+      new ExtractTextPlugin(`css/[name]${isProduction ? '.[chunkhash:8]' : ''}.css`),
       isProduction && new UglifyJSPlugin({
         parallel: true,
       }),

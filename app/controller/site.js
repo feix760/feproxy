@@ -4,7 +4,7 @@ const path = require('path');
 const chalk = require('chalk');
 
 exports.crt = async ctx => {
-  const crtFile = path.join(__dirname, '../../run/feproxy.crt');
+  const crtFile = path.join(ctx.app.config.RC_DIR, 'feproxy.crt');
   if (fs.existsSync(crtFile)) {
     ctx.set('content-type', 'application/octet-stream');
     ctx.body = fs.readFileSync(crtFile);
