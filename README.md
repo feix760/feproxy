@@ -1,6 +1,4 @@
 
-### Desc
-
 FeProxy is a proxy tool use for web development like the `Fiddler`, and we use `Chrome Devtools` to inpect net traffic.
 
 - Inpect net traffic to chrome
@@ -23,17 +21,17 @@ FeProxy is a proxy tool use for web development like the `Fiddler`, and we use `
 feproxy
 ```
 
-### development
+Server start on http://127.0.0.1:8080
+
+Manage page on [http://127.0.0.1:8080/admin.html](http://127.0.0.1:8080/admin.html)
+
+### Development
 
 ```sh
 git clone https://github.com/feix760/feproxy.git
 cd feproxy
 npm run dev
 ```
-
-Server start on http://30.103.76.186:8080
-
-Manage page on [http://127.0.0.1:8100](http://127.0.0.1:8100/admin.html)
 
 ### Manage
 
@@ -45,4 +43,4 @@ offline\\.zip status://404
 
 `Host`:
 
-10.70.65.110 s.url.cn
+s.url.cn 10.70.65.110
