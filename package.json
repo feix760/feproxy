@@ -1,6 +1,6 @@
 {
   "name": "feproxy",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "An node proxy server for frontend development",
   "scripts": {
     "start": "cross-env NODE_ENV=production node app.js",
