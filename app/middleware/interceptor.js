@@ -29,21 +29,26 @@ module.exports = async (ctx, next) => {
     const to = matchTo(rawURL, item.match, item.to);
     if (to) {
       result.url = to;
+      if (item.hostname) {
+        result.hostname = item.hostname;
+      }
       return true;
     }
     return false;
   });
 
-  const hostname = url.parse(result.url || rawURL).hostname;
+  if (!result.hostname) {
+    const hostname = url.parse(result.url || rawURL).hostname;
 
-  forwarding.hosts.some(item => {
-    const to = matchTo(hostname, item.match, item.to);
-    if (to) {
-      result.hostname = to;
-      return true;
-    }
-    return false;
-  });
+    forwarding.hosts.some(item => {
+      const to = matchTo(hostname, item.match, item.to);
+      if (to) {
+        result.hostname = to;
+        return true;
+      }
+      return false;
+    });
+  }
 
   ctx.forwarding = result;
 

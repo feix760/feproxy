@@ -20,56 +20,6 @@
   }
 }
 
-.project-box {
-  .add-row {
-    display: block;
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-    border: 1px solid #dfe6ec;
-    border-top: none;
-    cursor: pointer;
-    &:hover {
-      background: #eef1f6;
-    }
-    i {
-      font-size: 18px;
-      vertical-align: middle;
-      color: #20a0ff;
-    }
-  }
-  .el-table__empty-block {
-    display: none;
-  }
-
-  .el-collapse-item__header {
-    position: relative;
-    .el-input {
-      display: inline-block;
-      width: 250px;
-    }
-    .el-button {
-      position: absolute;
-      right: 20px;
-      top: 10px;
-    }
-  }
-
-  .el-input__inner {
-    border-color: transparent;
-    &:hover {
-      border-color: #bfcbd9;
-    }
-    &:focus {
-      border-color: #20a0ff;
-    }
-  }
-  .el-table--enable-row-hover tr:hover {
-    .el-input__inner {
-      border-color: #bfcbd9;
-      &:focus {
-        border-color: #20a0ff;
-      }
-    }
-  }
+.devtools-url {
+  width: 600px;
 }

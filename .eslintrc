@@ -12,6 +12,7 @@
     "eol-last": "off",
     "strict": "off",
     "no-alert": "off",
+    "react/prop-types": "off",
     "no-irregular-whitespace": [
       "error",
       {
