@@ -8,8 +8,6 @@ const proxy = require('./proxy');
 module.exports = app => {
   const router = koaRouter();
   const routes = router.routes();
-  app.use(routes);
-  app.ws.use(routes);
 
   router.all(/^\w+:\/\/.*/, async (ctx, next) => {
     // console.log(ctx.url);
@@ -17,6 +15,7 @@ module.exports = app => {
   });
 
   // ------ proxy ----------
+  // proxy url start with protocol: `(https|http|wss)://host/path`
   const httpURL = /^https?:\/\/.*/i;
   router.all(httpURL, middleware.inspect);
   router.all(httpURL, middleware.interceptor);
@@ -27,6 +26,7 @@ module.exports = app => {
   router.all(wsURL, proxy.websocket);
 
   // ------ site ----------
+  // site url is normal
   router.get('/feproxy.crt', controller.site.crt);
   router.get('/log', controller.site.log);
   router.get('/getConfig', controller.site.getConfig);
@@ -34,4 +34,8 @@ module.exports = app => {
 
   // chrome inspect websocket
   router.get('/ws', controller.ws);
+
+  // use routes to app
+  app.use(routes);
+  app.ws.use(routes);
 };

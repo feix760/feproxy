@@ -4,9 +4,9 @@ const URL = Symbol('URL');
 module.exports = ({ context }) => {
 
   const getFullURL = (ctx, protocol) => {
-    const href = ctx.request.url;
-    if (/^\w+:\/\/.*/.test(href)) {
-      return href;
+    const absolutePath = ctx.request.url;
+    if (/^\w+:\/\/.*/.test(absolutePath)) {
+      return absolutePath;
     }
     const { hostname, port } = ctx.req.socket.server.proxy;
     let addPort = '';
@@ -15,7 +15,7 @@ module.exports = ({ context }) => {
     ) {
       addPort = `:${port}`;
     }
-    return `${protocol}://${hostname}${addPort}${href}`;
+    return `${protocol}://${hostname}${addPort}${absolutePath}`;
   };
 
   Object.defineProperties(context, {
@@ -23,6 +23,7 @@ module.exports = ({ context }) => {
       get() {
         if (!this[URL]) {
           if (this.req.socket.server.proxy && this.protocol === 'https') {
+            // add protocol to https|wss url, detail for `lib/server.js`
             this[URL] = getFullURL(this, this.websocket ? 'wss' : 'https');
           } else {
             this[URL] = this.request.url;
@@ -33,7 +34,8 @@ module.exports = ({ context }) => {
     },
     routerPath: {
       get() {
-        return this.url.replace(/\?[\s\S]*/, '');
+        // remove param
+        return this.url.replace(/\?[\s\S]*$/, '');
       },
     },
   });
