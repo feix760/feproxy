@@ -1,7 +1,7 @@
 {
   "name": "feproxy",
-  "version": "2.0.1",
-  "description": "An node proxy server for frontend development",
+  "version": "2.0.2",
+  "description": "An node proxy server for web development",
   "scripts": {
     "start": "cross-env NODE_ENV=production node app.js",
     "dev": "webpack -w & nodemon --watch app --watch lib --watch ./app.js app.js",
@@ -13,17 +13,6 @@
   "bin": {
     "feproxy": "./bin/feproxy.js"
   },
-  "files": [
-    "app",
-    "bin",
-    "lib",
-    "public",
-    "app.js",
-    "README.md",
-    "package.json"
-  ],
-  "author": "382184760@qq.com",
-  "license": "ISC",
   "dependencies": {
     "chalk": "^2.3.2",
     "cross-env": "^5.2.0",
@@ -78,5 +67,26 @@
     "webpack": "^4.23.1",
     "webpack-chunk-hash": "^0.6.0",
     "webpack-cli": "^3.1.2"
-  }
+  },
+  "files": [
+    "app",
+    "bin",
+    "lib",
+    "public",
+    "app.js",
+    "README.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "homepage": "https://github.com/feix760/feproxy",
+  "bugs": {
+    "url" : "https://github.com/feix760/feproxy/issues"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/feix760/feproxy.git"
+  },
+  "license": "MIT"
 }
