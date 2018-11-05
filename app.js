@@ -22,6 +22,7 @@ const server = require('./lib/server')(app);
 server.listen(app.config.port, () => {
   console.log(chalk.green(`\n👉 Server start on http://${ip.address()}:${app.config.port}`));
   console.log(chalk.green(`🎮 Manange page on http://${ip.address()}:${app.config.port}/admin.html`));
+  console.log(chalk.green(`🚀 Inspect page on ${app.config.devtoolsURL}`));
 });
 
 app.on('error', (err, ctx) => {

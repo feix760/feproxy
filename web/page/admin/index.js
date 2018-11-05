@@ -32,7 +32,7 @@ class Component extends React.Component {
           <div className="devtools-url" ref={e => (this.devtoolsURL = e)}>
             <Input
               readOnly
-              value={`chrome-devtools://devtools/bundled/inspector.html?ws=127.0.0.1:${config.port}/ws`}
+              value={config.devtoolsURL}
               prepend="Inspect URL"
               append={<Button type="primary" icon="document" onClick={this.copy}>Copy</Button>} />
           </div>
