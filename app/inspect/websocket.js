@@ -1,4 +1,7 @@
 
+const url = require('url');
+const ip = require('ip');
+
 module.exports = inspect => {
   const webSocketWillSendHandshakeRequest = async ctx => {
     const ws = ctx.websocket;
@@ -70,21 +73,31 @@ module.exports = inspect => {
     });
   };
 
+  function inspectable(ctx) {
+    const urlInfo = url.parse(ctx.url);
+    const { config } = ctx.app;
+
+    const expr = `^(localhost|127.0.0.1|${ip.address()}|${config.hostname})$`.replace(/\./g, '\\.');
+
+    return !new RegExp(expr, 'i').test(urlInfo.hostname)
+      || urlInfo.port !== config.port
+      || urlInfo.path !== '/ws';
+  }
+
   inspect.on('webSocketWillSendHandshakeRequest', ctx => {
-    if (inspect.hasClient()) {
+    if (inspect.hasClient() && inspectable(ctx)) {
       webSocketWillSendHandshakeRequest(ctx)
         .catch(err => console.error(err));
     }
   })
     .on('webSocketHandshakeResponseReceived', ctx => {
-      if (inspect.hasClient()) {
+      if (inspect.hasClient() && inspectable(ctx)) {
         webSocketHandshakeResponseReceived(ctx)
           .catch(err => console.error(err));
       }
     });
 
-  const methods = {
-  };
+  const methods = {};
 
   return {
     methods,

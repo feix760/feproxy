@@ -35,7 +35,7 @@ module.exports = async ctx => {
     ws.on('error', reject);
   });
 
-  msgList.forEach(msg => res.send(msg));
+  msgList.splice(0, msgList.length).forEach(msg => res.send(msg));
 
   res.on('message', msg => {
     try {
