@@ -84,16 +84,22 @@ module.exports = inspect => {
       || urlInfo.path !== '/ws';
   }
 
-  inspect.on('webSocketWillSendHandshakeRequest', ctx => {
+  inspect.on('webSocketWillSendHandshakeRequest', async ctx => {
     if (inspect.hasClient() && inspectable(ctx)) {
-      webSocketWillSendHandshakeRequest(ctx)
-        .catch(err => console.error(err));
+      try {
+        await webSocketWillSendHandshakeRequest(ctx);
+      } catch (err) {
+        console.log(err);
+      }
     }
   })
-    .on('webSocketHandshakeResponseReceived', ctx => {
+    .on('webSocketHandshakeResponseReceived', async ctx => {
       if (inspect.hasClient() && inspectable(ctx)) {
-        webSocketHandshakeResponseReceived(ctx)
-          .catch(err => console.error(err));
+        try {
+          await webSocketHandshakeResponseReceived(ctx);
+        } catch (err) {
+          console.error(err);
+        }
       }
     });
 

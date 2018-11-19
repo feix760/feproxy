@@ -9,7 +9,7 @@
     obj[method] = function() {
       var args = [].slice.call(arguments);
       fn.apply(obj, args);
-      new Image().src = '//feproxy.org/log?str=' + JSON.stringify(args) + '&index=' + (++index);
+      new Image().src = '//feproxy.org/log?str=' + encodeURIComponent(JSON.stringify(args)) + '&index=' + (++index);
     };
   }
 
