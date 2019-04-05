@@ -43,12 +43,12 @@ async function requestGet(ctx) {
         agent: agent[dest.protocol.replace(':', '')],
       }, res => {
         res.on('error', err => {
-          console.error('res error', err);
+          console.error('res error', err.code || '');
         });
         resolve({ req, res });
       });
       req.on('error', err => {
-        console.error('req error', dest.href, err);
+        console.error('req error', dest.href, err.code || '');
         reject(err);
       });
       if (method === 'POST' || method === 'PUT' || method === 'OPTIONS') {

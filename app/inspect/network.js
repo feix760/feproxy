@@ -50,7 +50,8 @@ module.exports = inspect => {
     const { res, req } = ctx;
     const proxyRes = ctx.proxy && ctx.proxy.res;
 
-    const resHeaders = proxyRes ? proxyRes.headers : res.getHeaders();
+    // const resHeaders = proxyRes ? proxyRes.headers : res.getHeaders();
+    const resHeaders = res.getHeaders();
     const mimeType = getMimeType(resHeaders);
     const type = getResourceType(mimeType);
 
