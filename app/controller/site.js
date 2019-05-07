@@ -1,13 +1,13 @@
 
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
 
 exports.crt = async ctx => {
   const crtFile = path.join(ctx.app.config.RC_DIR, 'feproxy.crt');
-  if (fs.existsSync(crtFile)) {
+  if (await fs.exists(crtFile)) {
     ctx.set('content-type', 'application/octet-stream');
-    ctx.body = fs.readFileSync(crtFile);
+    ctx.body = await fs.readFile(crtFile);
   }
 };
 
