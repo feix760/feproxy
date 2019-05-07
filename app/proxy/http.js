@@ -8,8 +8,10 @@ const mime = require('mime-types');
 
 const agentOpt = {
   keepAlive: true,
-  maxSockets: 6,
-  keepAliveMsecs: 1000,
+  keepAliveMsecs: 5000,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 60000,
 };
 
 const agent = {
