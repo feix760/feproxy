@@ -3,11 +3,11 @@ FeProxy is a proxy tool use for web development like the `Fiddler`, and we use `
 
 - Inpect net traffic to chrome
 
-[![inspect page](https://raw.githubusercontent.com/feix760/feproxy/master/docs/inspector.png)](http://127.0.0.1:8100/inspect)
+[![inspect page](https://raw.githubusercontent.com/feix760/feproxy/master/doc/inspector.png)](http://127.0.0.1:8100/inspect)
 
 - Map url to file, other url, other host
 
-[![manage page](https://raw.githubusercontent.com/feix760/feproxy/master/docs/manage.png)](http://127.0.0.1:8100/inspect)
+[![manage page](https://raw.githubusercontent.com/feix760/feproxy/master/doc/manage.png)](http://127.0.0.1:8100/inspect)
 
 ### Install
 
