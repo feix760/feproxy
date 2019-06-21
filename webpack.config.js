@@ -1,134 +1,107 @@
 const path = require('path');
 const webpack = require('webpack');
-const chalk = require('chalk');
 const glob = require('glob-all');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CleanWebpackPlugin = require('clean-webpack-plugin');
-const WebpackChunkHash = require('webpack-chunk-hash');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const getWebpackConfig = () => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const output = './public';
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const devMode = mode === 'development';
+const outputPath = path.join(__dirname, 'public'); // 输出目录
+const publicPath = '/';
 
-  const config = {
-    mode: isProduction ? 'production' : 'development',
-    entry: {
-      include: [
-        './web/page/**/index.js',
-        '!./web/page/**/component/**',
-      ],
-    },
-    devtool: isProduction ? undefined : 'eval',
-    output: {
-      path: path.join(__dirname, output),
-      filename: `js/[name]${isProduction ? '.[chunkhash:8]' : ''}.js`,
-      publicPath: '/',
-    },
-    module: {
-      rules: [
-        {
-          test: /\.js$/,
-          exclude: /node_modules/,
-          use: 'babel-loader',
-        },
-        {
-          test: /\.css$/,
-          use: ExtractTextPlugin.extract({
-            fallback: 'style-loader',
-            use: [
-              {
-                loader: 'css-loader',
-                options: {
-                  minimize: isProduction,
-                },
-              },
-            ],
-          }),
-        },
-        {
-          test: /\.scss$/,
-          use: ExtractTextPlugin.extract({
-            fallback: 'style-loader',
-            use: [
-              {
-                loader: 'css-loader',
-                options: {
-                  minimize: isProduction,
-                },
-              },
-              'sass-loader',
-            ],
-          }),
-        },
-        {
-          test: /\.(png|svg|jpg|jpeg|gif|wav|mp4|ttf|woff)$/,
-          use: {
-            loader: 'url-loader',
+const entry = glob.sync([ 'frontend/page/*/index.js' ])
+  .reduce((obj, item) => {
+    const chunk = item.split(/[\/\\]/)[2];
+    obj[chunk] = path.join(__dirname, item);
+    return obj;
+  }, {});
+
+module.exports = {
+  mode,
+  devtool: devMode ? 'source-map' : false,
+  entry,
+  output: {
+    path: outputPath,
+    publicPath,
+    filename: devMode ? 'lib/[name].js' : 'lib/[name].[hash:8].js',
+  },
+  resolve: {
+    extensions: [ '.ts', '.tsx', '.js' ],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader',
+      },
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
             options: {
-              limit: 1024 * 10,
-              fallback: 'file-loader',
-              // img output path
-              name: 'img/[name].[hash:8].[ext]',
+              // hmr: devMode,
             },
           },
-        },
-      ],
-    },
-    plugins: [
-      new CleanWebpackPlugin([ output ]),
-      new WebpackChunkHash(),
-      new webpack.EnvironmentPlugin({
-        NODE_ENV: 'development',
-        DEBUG: false,
-      }),
-      new webpack.ProgressPlugin((percentage, msg, modules) => {
-        const stream = process.stderr;
-        if (stream.isTTY && percentage < 0.71) {
-          stream.cursorTo(0);
-          stream.write(chalk.magenta(`📦 ${(modules || '').split(' ')[0]} ${msg} `));
-          stream.clearLine(1);
-        }
-      }),
-      // css output path
-      new ExtractTextPlugin(`css/[name]${isProduction ? '.[chunkhash:8]' : ''}.css`),
-      isProduction && new UglifyJSPlugin({
-        parallel: true,
-      }),
-      new CopyWebpackPlugin([ 'web/asset' ]),
-    ].filter(item => item),
-  };
-
-  const setEntry = () => {
-    const entry = {};
-    glob.sync(config.entry.include).forEach(item => {
-      const name = item.split('/').slice(-2)[0];
-      entry[name] = [ item ];
-    });
-    config.entry = entry;
-  };
-
-  const setHTMLPlugin = () => {
-    Object.keys(config.entry).forEach(chunk => {
-      const entries = config.entry[chunk];
-      const entry = entries instanceof Array ? entries[entries.length - 1] : entries;
-
-      config.plugins.push(new HtmlWebpackPlugin({
-        // html output path
+          'css-loader',
+        ],
+      },
+      {
+        test: /\.scss$/,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              // hmr: devMode,
+            },
+          },
+          'css-loader',
+          'sass-loader',
+        ],
+      },
+      {
+        test: /\.(png|svg|jpe?g|bmp|gif|ttf|woff)$/,
+        use: [
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 1024 * 2,
+              fallback: 'file-loader',
+              name: 'lib/[name].[hash:8].[ext]',
+            },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new CleanWebpackPlugin(),
+    ...Object.keys(entry).map(chunk => {
+      const main = entry[chunk];
+      return new HtmlWebpackPlugin({
         filename: `${chunk}.html`,
+        template: main.replace(/\.(ts|js)$/, '.html'),
         chunks: [ chunk ],
-        // template path
-        template: entry.replace(/\.js$/, '.html'),
-      }));
-    });
-  };
-
-  setEntry();
-  setHTMLPlugin();
-
-  return config;
+        minify: devMode ? false : {
+          minifyJS: true,
+          minifyCSS: true,
+          collapseWhitespace: true,
+          preserveLineBreaks: true,
+        },
+      });
+    }),
+    new webpack.EnvironmentPlugin({
+      NODE_ENV: mode,
+      DEBUG: devMode,
+    }),
+    new MiniCssExtractPlugin({
+      filename: devMode ? 'lib/[name].css' : 'lib/[name].[hash:8].css',
+    }),
+    new webpack.ProgressPlugin(),
+    new CopyWebpackPlugin([ 'frontend/asset' ]),
+    // new webpack.HotModuleReplacementPlugin(),
+  ].filter(item => item),
 };
-
-module.exports = getWebpackConfig();

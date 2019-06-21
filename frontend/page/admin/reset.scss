@@ -1,0 +1,63 @@
+*,
+:after,
+:before {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0)
+}
+
+iframe,blockquote, body, dd, div, dl, dt, fieldset, form, h1, h2, h3, h4, h5, h6, input, legend, li, ol, p, td, textarea, th, ul {
+  margin: 0;
+  padding: 0
+}
+
+iframe {
+  border: 0;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0
+}
+
+fieldset, img {
+  border: 0
+}
+
+li {
+  list-style: none
+}
+
+caption, th {
+  text-align: left
+}
+
+input:password {
+  ime-mode: disabled
+}
+
+:focus {
+  outline: none
+}
+
+a, img {
+  -webkit-touch-callout: none
+}
+
+body, button, input, select, textarea {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+  font-family: Helvetica Neue, Helvetica, STHeiTi, sans-serif
+}
+
+input {
+  line-height: normal
+}
+
+a {
+  color: #0ae;
+  text-decoration: none
+}
+
+input[type=checkbox] {
+  cursor: pointer;
+}

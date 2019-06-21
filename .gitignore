@@ -12,3 +12,4 @@ npm-debug.log.*
 /package-lock.json
 /run
 /public
+/test/.tmp
