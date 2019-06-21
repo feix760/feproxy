@@ -1,6 +1,6 @@
 {
   "name": "feproxy",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "An node proxy server for web development",
   "scripts": {
     "start": "cross-env NODE_ENV=production node index.js",
@@ -10,7 +10,7 @@
     "lint-fix": "eslint --fix .",
     "jest": "jest",
     "test": "npm run lint && npm run jest",
-    "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
+    "version": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "prepublish": "npm run build"
   },
   "bin": {
