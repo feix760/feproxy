@@ -16,13 +16,6 @@ describe('proxy test', () => {
     expect(app).toBeTruthy();
   });
 
-  test('home page', async () => {
-    const response = await rp({
-      url: util.getURL(app),
-    });
-    expect(response).toBeTruthy();
-  });
-
   test('proxy http', async () => {
     const url = util.getURL(app);
     const response = await rp({

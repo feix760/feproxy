@@ -166,6 +166,7 @@ describe('proxy rule test', () => {
         resolveWithFullResponse: true,
       });
     } catch (err) {
+      // test redirect will throw error
       response = err && err.response;
     }
     expect(response).toBeTruthy();

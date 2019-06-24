@@ -104,7 +104,7 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "{lib,frontend,bin}/**/*.{ts,js}",
-      "!frontend/asset/devtools/**"
+      "!frontend/asset/**"
     ],
     "coverageThreshold": {
       "global": {

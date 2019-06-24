@@ -20,13 +20,13 @@ exports.startApp = async config => {
 };
 
 exports.stopApp = async app => {
+  await app.stop();
+
   const tmp = path.join(__dirname, '.tmp');
 
   if (app.config.RC_DIR.startsWith(tmp)) {
     await fs.remove(tmp);
   }
-
-  await app.stop();
 };
 
 exports.getURL = app => {
