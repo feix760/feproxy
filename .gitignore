@@ -10,6 +10,5 @@ npm-debug.log.*
 /.idea
 /node_modules
 /package-lock.json
-/run
-/public
+/lib/public
 /test/.tmp

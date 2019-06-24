@@ -8,12 +8,12 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
 const devMode = mode === 'development';
-const outputPath = path.join(__dirname, 'public'); // 输出目录
+const outputPath = path.join(__dirname, 'lib/public'); // 输出目录
 const publicPath = '/';
 
-const entry = glob.sync([ 'frontend/page/*/index.js' ])
+const entry = glob.sync([ 'lib/frontend/page/*/index.js' ])
   .reduce((obj, item) => {
-    const chunk = item.split(/[\/\\]/)[2];
+    const chunk = item.split(/[\/\\]/)[3];
     obj[chunk] = path.join(__dirname, item);
     return obj;
   }, {});
@@ -101,7 +101,7 @@ module.exports = {
       filename: devMode ? 'lib/[name].css' : 'lib/[name].[hash:8].css',
     }),
     new webpack.ProgressPlugin(),
-    new CopyWebpackPlugin([ 'frontend/asset' ]),
+    new CopyWebpackPlugin([ 'lib/frontend/asset' ]),
     // new webpack.HotModuleReplacementPlugin(),
   ].filter(item => item),
 };
