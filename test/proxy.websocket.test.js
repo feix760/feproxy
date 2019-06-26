@@ -1,8 +1,8 @@
 
 const getPort = require('get-port');
 const WebSocket = require('ws');
-const ProxyAgent = require('./ProxyAgent');
-const util = require('./util');
+const ProxyAgent = require('./util/ProxyAgent');
+const util = require('./util/util');
 
 describe('proxy websocket test', () => {
   let app;

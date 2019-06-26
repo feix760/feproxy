@@ -3,7 +3,7 @@ const http = require('http');
 const getPort = require('get-port');
 const rp = require('request-promise');
 const fs = require('fs-extra');
-const util = require('./util');
+const util = require('./util/util');
 
 describe('proxy rule test', () => {
   let app;

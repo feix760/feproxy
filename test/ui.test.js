@@ -1,6 +1,6 @@
 import { mount, configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
-import util from './util';
+import util from './util/util';
 import Page from '../lib/frontend/page/admin';
 import { getConfig, setConfig } from '../lib/frontend/page/admin/action/config';
 

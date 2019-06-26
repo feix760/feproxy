@@ -2,7 +2,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const getPort = require('get-port');
-const App = require('../lib/App');
+const App = require('../../lib/App');
 
 exports.startApp = async config => {
   jest.setTimeout(1000 * 30);

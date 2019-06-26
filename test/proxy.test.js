@@ -1,6 +1,6 @@
 
 const rp = require('request-promise');
-const util = require('./util');
+const util = require('./util/util');
 
 describe('proxy test', () => {
   let app;
