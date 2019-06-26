@@ -37,6 +37,27 @@ describe('proxy test', () => {
     expect(response).toBeTruthy();
   });
 
+  test('proxy keep alive', async () => {
+    const url = util.getURL(app);
+    await rp({
+      url,
+      proxy: url,
+      strictSSL: false,
+      forever: true,
+    });
+
+    const response = await rp({
+      url,
+      proxy: url,
+      strictSSL: false,
+      forever: true,
+      resolveWithFullResponse: true,
+    });
+
+    expect(response.headers['proxy-connection']).toEqual('keep-alive');
+    expect(response.body).toBeTruthy();
+  });
+
   test('proxy https use connect', async () => {
     const url = util.getURL(app);
     app.config.https = false;
