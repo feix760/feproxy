@@ -4,10 +4,12 @@ const fs = require('fs-extra');
 const getPort = require('get-port');
 const App = require('../../lib/App');
 
+const tmpDir = path.join(__dirname, '../.tmp');
+
 exports.startApp = async config => {
   jest.setTimeout(1000 * 30);
 
-  const RC_DIR = path.join(__dirname, `.tmp/${Math.random()}`);
+  const RC_DIR = path.join(tmpDir, `${Math.random()}`);
 
   const app = App({
     port: await getPort(10000 + Math.floor(Math.random() * 50000)),
@@ -24,10 +26,9 @@ exports.startApp = async config => {
 exports.stopApp = async app => {
   await app.stop();
 
-  const tmp = path.join(__dirname, '.tmp');
 
-  if (app.config.RC_DIR.startsWith(tmp)) {
-    await fs.remove(tmp);
+  if (app.config.RC_DIR.startsWith(tmpDir)) {
+    await fs.remove(tmpDir);
   }
 };
 
