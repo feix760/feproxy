@@ -5,6 +5,8 @@ const getPort = require('get-port');
 const App = require('../lib/App');
 
 exports.startApp = async config => {
+  jest.setTimeout(1000 * 30);
+
   const RC_DIR = path.join(__dirname, `.tmp/${Math.random()}`);
 
   const app = App({
@@ -30,7 +32,7 @@ exports.stopApp = async app => {
 };
 
 exports.getURL = app => {
-  return `http://127.0.0.1:${app.config.port}`;
+  return `http://127.0.0.1:${app.config.port}/`;
 };
 
 exports.getTestURL = (https = true) => {

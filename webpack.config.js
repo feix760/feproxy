@@ -78,7 +78,7 @@ module.exports = {
     ],
   },
   plugins: [
-    new CleanWebpackPlugin(),
+    !devMode && new CleanWebpackPlugin(),
     ...Object.keys(entry).map(chunk => {
       const main = entry[chunk];
       return new HtmlWebpackPlugin({

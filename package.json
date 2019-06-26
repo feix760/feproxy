@@ -8,8 +8,8 @@
     "build": "cross-env NODE_ENV=production webpack",
     "lint": "eslint .",
     "lint-fix": "eslint --fix .",
-    "jest": "jest",
-    "test": "npm run lint && npm run jest",
+    "jest": "cross-env NODE_ENV=testing jest",
+    "test": "npm run lint && npm run build && npm run jest",
     "version": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "prepublish": "npm run build"
   },
@@ -42,14 +42,18 @@
     "@babel/core": "^7.4.4",
     "@babel/plugin-proposal-class-properties": "^7.4.4",
     "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
+    "@babel/plugin-transform-modules-commonjs": "^7.4.4",
     "@babel/preset-react": "^7.0.0",
     "babel-eslint": "^8.1.2",
+    "babel-jest": "^24.8.0",
     "babel-loader": "^8.0.6",
     "clean-webpack-plugin": "^3.0.0",
     "conventional-changelog-cli": "^2.0.21",
     "copy-webpack-plugin": "^4.5.4",
     "css-loader": "^1.0.0",
     "element-theme-default": "^1.4.13",
+    "enzyme": "^3.10.0",
+    "enzyme-adapter-react-16": "^1.14.0",
     "eslint": "^4.7.2",
     "eslint-config-egg": "^4.2.0",
     "eslint-loader": "^1.9.0",
@@ -59,13 +63,14 @@
     "glob-all": "^3.1.0",
     "html-loader": "^0.5.5",
     "html-webpack-plugin": "^3.2.0",
+    "isomorphic-fetch": "^2.2.1",
     "jest": "^24.8.0",
     "mini-css-extract-plugin": "^0.7.0",
     "node-sass": "^4.9.4",
     "nodemon": "^1.17.2",
     "react": "^16.6.0",
     "react-dom": "^16.6.0",
-    "react-redux": "^5.1.0",
+    "react-redux": "^6.0.0",
     "redux": "^4.0.1",
     "redux-thunk": "^2.3.0",
     "request": "^2.88.0",
@@ -79,6 +84,7 @@
   "files": [
     "bin",
     "lib",
+    "!lib/frontend",
     "doc",
     "index.js",
     "README.md",
@@ -100,10 +106,19 @@
       "js",
       "ts"
     ],
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "moduleNameMapper": {
+      "\\.(css|less|sass|scss)$": "<rootDir>/test/__mocks__/styleMock.js",
+      "\\.(png|jpg|jpeg|gif|ttf|eot|svg)$": "<rootDir>/test/__mocks__/fileMock.js",
+      "^element-theme-default\\.*": "<rootDir>/test/__mocks__/styleMock.js"
+    },
     "collectCoverage": true,
     "collectCoverageFrom": [
-      "{lib,frontend,bin}/**/*.{ts,js}",
-      "!frontend/asset/**"
+      "{lib,bin}/**/*.{ts,js}",
+      "!lib/frontend/asset/**",
+      "!lib/public/**"
     ],
     "coverageThreshold": {
       "global": {

@@ -37,8 +37,9 @@ describe('proxy rule test', () => {
       url,
       strictSSL: false,
       proxy: util.getURL(app),
+      resolveWithFullResponse: true,
     });
-    expect(response).toBeTruthy();
+    expect(response.statusCode).toEqual(200);
     expect(Date.now() - st).toBeGreaterThan(delay);
   });
 
