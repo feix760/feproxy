@@ -20,9 +20,9 @@
 feproxy
 ```
 
-Proxy server: http://127.0.0.1:8080
+Proxy server http://127.0.0.1:8080
 
-Inspect page: [http://127.0.0.1:8080/admin.html](http://127.0.0.1:8080/admin.html)
+Inspect page [http://127.0.0.1:8080/admin.html](http://127.0.0.1:8080/admin.html)
 
 ### Development
 
