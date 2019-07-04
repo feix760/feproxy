@@ -42,14 +42,12 @@ describe('proxy test', () => {
     await rp({
       url,
       proxy: url,
-      strictSSL: false,
       forever: true,
     });
 
     const response = await rp({
       url,
       proxy: url,
-      strictSSL: false,
       forever: true,
       resolveWithFullResponse: true,
     });
