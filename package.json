@@ -115,6 +115,7 @@
       "\\.(png|jpg|jpeg|gif|ttf|eot|svg)$": "<rootDir>/test/__mocks__/fileMock.js",
       "^element-theme-default\\.*": "<rootDir>/test/__mocks__/styleMock.js"
     },
+    "coverageDirectory": "./coverage/",
     "collectCoverage": true,
     "collectCoverageFrom": [
       "{lib,bin}/**/*.{ts,js}",
@@ -129,10 +130,6 @@
         "statements": 80
       }
     },
-    "coverageReporters": [
-      "text",
-      "text-summary"
-    ],
     "testRegex": "test/.*\\.test\\.[jt]s$"
   },
   "license": "MIT"
