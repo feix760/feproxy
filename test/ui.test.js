@@ -35,6 +35,8 @@ describe('site router test', () => {
       projects,
     });
 
+    util.mockDOM();
+
     page = new Page();
 
     await page.loadData();

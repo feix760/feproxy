@@ -1,4 +1,3 @@
-
 const path = require('path');
 const fs = require('fs-extra');
 const getPort = require('get-port');
@@ -29,6 +28,27 @@ exports.stopApp = async app => {
   if (app.config.RC_DIR.startsWith(tmpDir)) {
     await fs.remove(tmpDir);
   }
+};
+
+exports.mockDOM = () => {
+  const jsdom = require('jsdom');
+
+  const dom = new jsdom.JSDOM(
+    '<!DOCTYPE html>',
+    {
+      pretendToBeVisual: true,
+      runScripts: 'dangerously',
+      url: 'http://feproxy.org/admin.html',
+    },
+  );
+
+  const window = dom.window.document.defaultView;
+
+  Object.assign(global, {
+    window,
+    document: window.document,
+    localStorage: window.localStorage,
+  });
 };
 
 exports.getURL = app => {
