@@ -17,9 +17,9 @@
     "feproxy": "./bin/feproxy.js"
   },
   "dependencies": {
+    "brotli": "^1.3.2",
     "chalk": "^2.3.2",
     "chrome-devtools-frontend": "1.0.661035",
-    "co": "^4.6.0",
     "cross-env": "^5.2.0",
     "fs-extra": "^5.0.0",
     "get-port": "^5.0.0",
