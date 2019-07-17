@@ -21,6 +21,7 @@
     "chalk": "^2.3.2",
     "chrome-devtools-frontend": "1.0.661035",
     "cross-env": "^5.2.0",
+    "escape-string-regexp": "^2.0.0",
     "fs-extra": "^5.0.0",
     "get-port": "^5.0.0",
     "iconv-lite": "^0.4.19",
@@ -123,7 +124,13 @@
       "!lib/frontend/asset/**",
       "!lib/public/**"
     ],
-    "coverageReporters": ["json", "lcov", "text", "clover", "text-summary"],
+    "coverageReporters": [
+      "json",
+      "lcov",
+      "text",
+      "clover",
+      "text-summary"
+    ],
     "coverageThreshold": {
       "global": {
         "branches": 50,
