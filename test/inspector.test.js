@@ -98,11 +98,13 @@ describe('inspect test', () => {
       inspector.sendMsg('Network.enable'),
       inspector.sendMsg('Page.enable'),
       inspector.sendMsg('Page.getResourceTree'),
+      inspector.sendMsg('Page.getResourceContent'),
     ]);
 
     expect(ret[0].result).toEqual(true);
     expect(ret[1].result).toEqual(false);
     expect(ret[2].frameTree).toBeTruthy();
+    expect(ret[3].content).toBeTruthy();
 
     const url = util.getTestURL();
     const [ request ] = await Promise.all([
@@ -242,5 +244,41 @@ describe('inspect test', () => {
       response = err && err.response;
     }
     expect(response.statusCode).toEqual(200);
+  });
+
+  test('devtools static files', async () => {
+    const response = await rp({
+      url: `${util.getURL(app)}devtools/SupportedCSSProperties.js`,
+    });
+
+    expect(response).toBeTruthy();
+  });
+
+  test('gzip test', async () => {
+    const inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+
+    await inspector.open();
+
+    const url = util.getTestURL();
+    const [
+      responseReceived,
+      loadingFinished,
+      response,
+    ] = await Promise.all([
+      inspector.waitMethod('Network.responseReceived'),
+      inspector.waitMethod('Network.loadingFinished'),
+      rp({
+        url,
+        gzip: true,
+        strictSSL: false,
+        proxy: util.getURL(app),
+      }),
+    ]);
+
+    expect(/gzip/i.test(responseReceived.response.requestHeaders['accept-encoding'])).toEqual(true);
+    expect(loadingFinished.encodedDataLength).toBeTruthy();
+    expect(response).toBeTruthy();
+
+    inspector.close();
   });
 });

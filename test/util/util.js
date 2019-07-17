@@ -26,7 +26,7 @@ exports.stopApp = async app => {
   await app.stop();
 
   if (app.config.RC_DIR.startsWith(tmpDir)) {
-    await fs.remove(tmpDir);
+    await fs.remove(app.config.RC_DIR);
   }
 };
 
