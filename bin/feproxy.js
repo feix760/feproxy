@@ -1,8 +1,12 @@
 #! /usr/bin/env node
 
 const argv = require('yargs')
+  .alias('p', 'port')
+  .describe('port', 'Service port')
+  .describe('https', 'Capture and modify https request')
+  .describe('config', 'Directory fo config files')
   .alias('v', 'version')
-  .describe('version', 'output the version number')
+  .describe('version', 'Output the version number')
   .help('help')
   .argv;
 
