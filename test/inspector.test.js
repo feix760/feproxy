@@ -201,4 +201,46 @@ describe('inspect test', () => {
 
     inspector.close();
   });
+
+  test('blocked URLs test', async () => {
+    const inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+
+    await inspector.open();
+
+    expect(inspector.client).toBeTruthy();
+
+    const url = util.getTestURL();
+    await inspector.sendMsg('Network.setBlockedURLs', {
+      urls: [ url ],
+    });
+
+    let response;
+    try {
+      response = await rp({
+        url,
+        strictSSL: false,
+        proxy: util.getURL(app),
+        resolveWithFullResponse: true,
+      });
+    } catch (err) {
+      // test redirect will throw error
+      response = err && err.response;
+    }
+    expect(response.statusCode).toEqual(404);
+
+    inspector.close();
+
+    try {
+      response = await rp({
+        url,
+        strictSSL: false,
+        proxy: util.getURL(app),
+        resolveWithFullResponse: true,
+      });
+    } catch (err) {
+      // test redirect will throw error
+      response = err && err.response;
+    }
+    expect(response.statusCode).toEqual(200);
+  });
 });
