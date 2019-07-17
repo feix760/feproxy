@@ -1,3 +1,13 @@
+## [3.0.6](https://github.com/feix760/feproxy/compare/v3.0.4...v3.0.6) (2019-07-17)
+
+
+### Bug Fixes
+
+* Fix `request` deps bug ([bb0f3c9](https://github.com/feix760/feproxy/commit/bb0f3c9))
+
+
+
+
 ## [3.0.4](https://github.com/feix760/feproxy/compare/v3.0.3...v3.0.4) (2019-07-17)
 
 
