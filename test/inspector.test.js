@@ -281,4 +281,35 @@ describe('inspect test', () => {
 
     inspector.close();
   });
+
+  test('Network.replayXHR test', async () => {
+    const inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+
+    await inspector.open();
+
+    const url = util.getTestURL();
+
+    const [ requestSendInfo ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      rp({
+        url,
+        gzip: true,
+        strictSSL: false,
+        proxy: util.getURL(app),
+      }),
+    ]);
+
+    expect(requestSendInfo.requestId).toBeTruthy();
+
+    const [ requestSendInfo2 ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      inspector.sendMsg('Network.replayXHR', {
+        requestId: requestSendInfo.requestId,
+      }),
+      inspector.waitMethod('Network.loadingFinished'),
+    ]);
+
+    expect(requestSendInfo.request).toEqual(requestSendInfo2.request);
+    inspector.close();
+  });
 });

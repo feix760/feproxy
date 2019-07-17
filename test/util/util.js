@@ -31,6 +31,7 @@ exports.stopApp = async app => {
 };
 
 exports.mockDOM = () => {
+  jest.mock('request-promise-native');
   const jsdom = require('jsdom');
 
   const dom = new jsdom.JSDOM(
