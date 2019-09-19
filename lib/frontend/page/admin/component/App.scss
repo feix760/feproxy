@@ -58,13 +58,30 @@ body {
   }
 }
 
-.box-header {
-  position: relative;
-  height: 20px;
-  line-height: 20px;
-  font-size: 18px;
-  font-weight: normal;
-  padding: 0 0 10px;
-  border-bottom: 1px solid #EEEEEE;
-  color: rgb(48, 57, 66);
+.box {
+  &-header {
+    position: relative;
+    height: 20px;
+    line-height: 20px;
+    font-size: 18px;
+    font-weight: normal;
+    padding: 0 0 10px;
+    border-bottom: 1px solid #EEEEEE;
+    color: rgb(48, 57, 66);
+  }
+  &-content {
+    padding-bottom: 10px;
+  }
+}
+
+.settings-item {
+  margin-left: 5px;
+  font-size: 14px;
+  height: 24px;
+  line-height: 24px;
+  color: #222;
+
+  input[type=checkbox] {
+    margin-right: 6px;
+  }
 }
