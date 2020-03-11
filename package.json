@@ -1,6 +1,6 @@
 {
   "name": "feproxy",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "An node proxy server for web development",
   "scripts": {
     "start": "cross-env NODE_ENV=production node index.js",

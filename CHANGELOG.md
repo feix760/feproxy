@@ -1,3 +1,20 @@
+## [3.0.7](https://github.com/feix760/feproxy/compare/v3.0.6...v3.0.7) (2020-03-11)
+
+
+### Bug Fixes
+
+* Fix close alive socket ([092cc7d](https://github.com/feix760/feproxy/commit/092cc7d))
+* Fix devtools websocket ip updated bug ([b0a23c5](https://github.com/feix760/feproxy/commit/b0a23c5))
+* host not the same fix for android ([2151bce](https://github.com/feix760/feproxy/commit/2151bce))
+* save https settings to file ([d972fe3](https://github.com/feix760/feproxy/commit/d972fe3))
+
+
+### Features
+
+* https capture settings ([686da51](https://github.com/feix760/feproxy/commit/686da51))
+
+
+
 ## [3.0.6](https://github.com/feix760/feproxy/compare/v3.0.4...v3.0.6) (2019-07-17)
 
 
