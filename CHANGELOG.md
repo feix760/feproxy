@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.2.0](https://github.com/feix760/feproxy/compare/v3.0.6...v3.2.0) (2025-11-13)
+
+
+### Features
+
+* 支持sse的响应 ([9152dbd](https://github.com/feix760/feproxy/commit/9152dbdad5df987357cd36553441f0ac6b644ace))
+* add switch ignore https certificate error ([e6e079f](https://github.com/feix760/feproxy/commit/e6e079fbed53219c0180eca9cdbdc6f62e4f69b2))
+* https capture settings ([686da51](https://github.com/feix760/feproxy/commit/686da51039f482baf4b2e6ed2459496d8d2bedb7))
+
+
+### Bug Fixes
+
+* Fix close alive socket ([092cc7d](https://github.com/feix760/feproxy/commit/092cc7d308ba1c310d98d368ea8aa1256d1e9be4))
+* Fix devtools websocket ip updated bug ([b0a23c5](https://github.com/feix760/feproxy/commit/b0a23c5abedd32ec11320f20652b1e490e324709))
+* Fix IOS TSL requirement update ([bc173f5](https://github.com/feix760/feproxy/commit/bc173f50e1fe7bbbdc35b62febc7aaa253f80a3e))
+* host not the same fix for android ([2151bce](https://github.com/feix760/feproxy/commit/2151bced51a77dffa55e2aaaa3308cc2502ca31e))
+* save https settings to file ([d972fe3](https://github.com/feix760/feproxy/commit/d972fe3e6f3f5195ca892fdb2f0685bbfb7dcab5))
+
 ## [3.1.0](https://github.com/feix760/feproxy/compare/v3.0.6...v3.1.0) (2020-09-02)
 
 
