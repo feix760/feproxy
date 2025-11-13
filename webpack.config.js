@@ -50,7 +50,7 @@ module.exports = {
         ],
       },
       {
-        test: /\.scss$/,
+        test: /\.less/,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -59,7 +59,7 @@ module.exports = {
             },
           },
           'css-loader',
-          'sass-loader',
+          'less-loader',
         ],
       },
       {
