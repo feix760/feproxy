@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.2.1](https://github.com/feix760/feproxy/compare/v3.2.0...v3.2.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* 兼容content-encoding gzip ([1a5027d](https://github.com/feix760/feproxy/commit/1a5027dc4fe110a2c93f75668328de85ef5f07aa))
+
 ## [3.2.0](https://github.com/feix760/feproxy/compare/v3.0.6...v3.2.0) (2025-11-13)
 
 
