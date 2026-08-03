@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.3.0](https://github.com/feix760/feproxy/compare/v3.2.1...v3.3.0) (2026-08-03)
+
+
+### Features
+
+* add zstd ([d20055b](https://github.com/feix760/feproxy/commit/d20055b6a05de5c2e2e99cbf2aa0eff4f4a96142))
+
+
+### Bug Fixes
+
+* update port ([b884b29](https://github.com/feix760/feproxy/commit/b884b29ba490466e0a9f40542548e084cfd96604))
+
 ### [3.2.1](https://github.com/feix760/feproxy/compare/v3.2.0...v3.2.1) (2025-11-25)
 
 
