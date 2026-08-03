@@ -15,7 +15,7 @@
     "prepublish": "npm run build"
   },
   "bin": {
-    "feproxy": "./bin/feproxy.js"
+    "feproxy": "bin/feproxy.js"
   },
   "dependencies": {
     "brotli": "^1.3.2",
@@ -104,7 +104,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/feix760/feproxy.git"
+    "url": "git+https://github.com/feix760/feproxy.git"
   },
   "jest": {
     "moduleFileExtensions": [
