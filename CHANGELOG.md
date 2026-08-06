@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.4.0](https://github.com/feix760/feproxy/compare/v3.3.0...v3.4.0) (2026-08-06)
+
+
+### Features
+
+* 证书名加上主机 ([ccbaf05](https://github.com/feix760/feproxy/commit/ccbaf059ff20899d28910d6fe2b923fe6faa2e91))
+
 ## [3.3.0](https://github.com/feix760/feproxy/compare/v3.2.1...v3.3.0) (2026-08-03)
 
 
