@@ -10,6 +10,7 @@ npm-debug.log.*
 /.idea
 /node_modules
 /package-lock.json
-/lib/public
+/lib
 /test/.tmp
 /coverage/
+.eslintcache

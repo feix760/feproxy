@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "target": "es2017",
+    "module" : "commonjs",
+    "sourceMap": false,
+    "experimentalDecorators": true,
+    "strict": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "isolatedModules": true,
+    "declaration": false,
+    "esModuleInterop": true,
+    "removeComments": false,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "esnext"
+    ]
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/frontend"
+  ]
+}

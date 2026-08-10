@@ -3,7 +3,6 @@ const webpack = require('webpack');
 const glob = require('glob-all');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
@@ -11,7 +10,7 @@ const devMode = mode === 'development';
 const outputPath = path.join(__dirname, 'lib/public'); // 输出目录
 const publicPath = '/';
 
-const entry = glob.sync([ 'lib/frontend/page/*/index.js' ])
+const entry = glob.sync([ 'src/frontend/page/*/index.tsx' ])
   .reduce((obj, item) => {
     const chunk = item.split(/[\/\\]/)[3];
     obj[chunk] = path.join(__dirname, item);
@@ -25,65 +24,54 @@ module.exports = {
   output: {
     path: outputPath,
     publicPath,
-    filename: devMode ? 'lib/[name].js' : 'lib/[name].[hash:8].js',
+    filename: devMode ? 'lib/[name].js' : 'lib/[name].[contenthash:8].js',
+    clean: !devMode,
   },
   resolve: {
-    extensions: [ '.ts', '.tsx', '.js' ],
+    extensions: [ '.tsx', '.ts', '.js' ],
   },
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: 'babel-loader',
       },
       {
         test: /\.css$/,
         use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              // hmr: devMode,
-            },
-          },
+          MiniCssExtractPlugin.loader,
           'css-loader',
         ],
       },
       {
         test: /\.less/,
         use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              // hmr: devMode,
-            },
-          },
+          MiniCssExtractPlugin.loader,
           'css-loader',
           'less-loader',
         ],
       },
       {
         test: /\.(png|svg|jpe?g|bmp|gif|ttf|woff)$/,
-        use: [
-          {
-            loader: 'url-loader',
-            options: {
-              limit: 1024 * 2,
-              fallback: 'file-loader',
-              name: 'lib/[name].[hash:8].[ext]',
-            },
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 1024 * 2,
           },
-        ],
+        },
+        generator: {
+          filename: 'lib/[name].[contenthash:8][ext]',
+        },
       },
     ],
   },
   plugins: [
-    !devMode && new CleanWebpackPlugin(),
     ...Object.keys(entry).map(chunk => {
       const main = entry[chunk];
       return new HtmlWebpackPlugin({
         filename: `${chunk}.html`,
-        template: main.replace(/\.(ts|js)$/, '.html'),
+        template: main.replace(/\.[jt]sx?$/, '.html'),
         chunks: [ chunk ],
         minify: devMode ? false : {
           minifyJS: true,
@@ -98,10 +86,11 @@ module.exports = {
       DEBUG: devMode,
     }),
     new MiniCssExtractPlugin({
-      filename: devMode ? 'lib/[name].css' : 'lib/[name].[hash:8].css',
+      filename: devMode ? 'lib/[name].css' : 'lib/[name].[contenthash:8].css',
     }),
     new webpack.ProgressPlugin(),
-    new CopyWebpackPlugin([ 'lib/frontend/asset' ]),
-    // new webpack.HotModuleReplacementPlugin(),
-  ].filter(item => item),
+    new CopyWebpackPlugin({
+      patterns: [ { from: 'src/frontend/asset' } ],
+    }),
+  ],
 };
