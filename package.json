@@ -3,8 +3,8 @@
   "version": "3.4.0",
   "description": "An node proxy server for web development",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node index.js",
-    "dev": "webpack -w & nodemon --watch lib --ignore lib/public/ --watch ./index.js index.js",
+    "start": "cross-env NODE_ENV=production node lib/index.js",
+    "dev": "webpack -w & nodemon --watch lib --ignore lib/public/ lib/index.js",
     "build": "cross-env NODE_ENV=production webpack",
     "lint": "eslint .",
     "lint-fix": "eslint --fix .",
