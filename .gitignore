@@ -9,7 +9,6 @@ npm-debug.log.*
 .vscode/
 /.idea
 /node_modules
-/package-lock.json
 /lib
 /test/.tmp
 /coverage/
