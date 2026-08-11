@@ -11,7 +11,8 @@ const websocket: ProxyPluginFn = async ctx => {
 
   const reqHeaders = {};
   Object.keys(ctx.req.headers).forEach(key => {
-    if (!/^sec-websocket-/i.test(key)) {
+    // 代理验证头不应转发给上游
+    if (!/^sec-websocket-/i.test(key) && key.toLowerCase() !== 'proxy-authorization') {
       reqHeaders[key] = ctx.req.headers[key];
     }
   });

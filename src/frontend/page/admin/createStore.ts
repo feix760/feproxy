@@ -14,6 +14,6 @@ export type AppDispatch = ThunkDispatch<RootState, unknown, ConfigAction>;
 
 export default () => createStore(
   rootReducer,
-  typeof window !== 'undefined' && window.__initialState || {},
+  typeof window !== 'undefined' && (window as any).__initialState || {},
   applyMiddleware(thunk),
 );

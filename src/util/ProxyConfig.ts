@@ -6,33 +6,42 @@ import type { Project, Rule } from '../types';
 const RULES = Symbol('RULES');
 const BLOCKED_URLS_CACHE = Symbol('BLOCKED_URLS_CACHE');
 
+export interface AuthConfig {
+  /** 是否开启代理账号验证 */
+  enable: boolean;
+  username: string;
+  password: string;
+}
+
 export interface ConfigData {
   RC_DIR: string;
   hostname: string;
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
+  auth?: AuthConfig;
   projects: Project[];
   [key: string]: any;
 }
 
-class Config {
+class ProxyConfig {
   RC_PATH: string;
   RC_DIR: string;
   hostname: string;
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
+  auth?: AuthConfig;
   projects: Project[];
   [key: string]: any;
 
   private [RULES]: Rule[];
   private [BLOCKED_URLS_CACHE]: { key: string; rules: Rule[] };
 
-  constructor(defaultConfig: ConfigData) {
+  constructor(configDefault: ConfigData) {
     let rcConfig = {};
 
-    this.RC_PATH = path.join(defaultConfig.RC_DIR, 'config.json');
+    this.RC_PATH = path.join(configDefault.RC_DIR, 'config.json');
 
     try {
       if (fs.existsSync(this.RC_PATH)) {
@@ -43,7 +52,7 @@ class Config {
     }
 
     const config = {
-      ...defaultConfig,
+      ...configDefault,
 
       ...rcConfig,
     };
@@ -54,7 +63,10 @@ class Config {
   }
 
   async update(config: Partial<ConfigData>) {
-    Object.assign(this, config);
+    const update = { ...config };
+    // 代理账号写死在 config.ts, 不允许通过接口修改
+    delete update.auth;
+    Object.assign(this, update);
 
     this.updateRules();
 
@@ -124,4 +136,4 @@ class Config {
   }
 }
 
-export default Config;
+export default ProxyConfig;

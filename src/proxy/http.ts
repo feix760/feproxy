@@ -31,6 +31,10 @@ const httpProxy: ProxyPluginFn = async (ctx, next, param) => {
   if (headers.connection) {
     delete headers.connection;
   }
+  // 代理验证头不应转发给上游
+  if (headers['proxy-authorization']) {
+    delete headers['proxy-authorization'];
+  }
 
   const urlInfo = url.parse(param.url || ctx.url);
   if (param.url) {

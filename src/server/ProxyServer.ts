@@ -1,5 +1,6 @@
 import net from 'net';
 import catchError from '../util/catchError';
+import * as proxyAuth from '../util/proxyAuth';
 import type { FeproxyApp } from '../types';
 import ServerFactory from './ServerFactory';
 
@@ -50,11 +51,17 @@ class ProxyServer {
 
   onSocket(socket: net.Socket) {
     return this.onceData(socket, async buffer => {
+      // 代理账号验证, 通过后该隧道上的请求不再重复验证
+      const raw = buffer.toString();
+      if (!this.verifyAuth(socket, proxyAuth.getRawProxyAuthorization(raw))) {
+        socket.end(proxyAuth.getProxyAuthRequiredRaw(raw));
+        return;
+      }
       socket.pause();
-      if (/^CONNECT\b/i.test(buffer.slice(0, 8).toString())) {
+      if (/^CONNECT\b/i.test(raw)) {
         // http socket proxy
         // https proxy
-        const match = buffer.toString().match(/^CONNECT\s+([^\s:]+):(\d+)/i);
+        const match = raw.match(/^CONNECT\s+([^\s:]+):(\d+)/i);
         const hostname = match[1];
         const port = +match[2];
         socket.write('HTTP/1.1 200 Connection established\r\n\r\n');
@@ -77,6 +84,18 @@ class ProxyServer {
         throw new Error('Unrecognized protocol');
       }
     });
+  }
+
+  /**
+   * 校验代理账号, 校验通过时给 socket 打上标记
+   * 未开启验证时直接通过
+   */
+  verifyAuth(socket: net.Socket, credentials: string) {
+    const { auth } = this.app.config;
+    if (!proxyAuth.needAuth(auth)) {
+      return true;
+    }
+    return proxyAuth.verifyCredentials(credentials, auth);
   }
 
   onConnect(socket: net.Socket, hostname: string, port: number) {

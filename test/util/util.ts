@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import getPort from 'get-port';
 import App from '../../src/App';
-import type { ConfigData } from '../../src/util/Config';
+import type { ConfigData } from '../../src/util/ProxyConfig';
 import type { FeproxyApp } from '../../src/types';
 
 const tmpDir = path.join(__dirname, '../.tmp');
@@ -16,6 +16,12 @@ export const startApp = async (config?: Partial<ConfigData>) => {
     port: await getPort(10000 + Math.floor(Math.random() * 50000)),
     https: true,
     RC_DIR,
+    // 默认关闭代理账号验证, 需要验证的用例单独开启
+    auth: {
+      enable: false,
+      username: 'feproxy',
+      password: 'feproxy',
+    },
     ...config,
   });
 

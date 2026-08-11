@@ -1,12 +1,12 @@
 import type http from 'http';
 import type Koa from 'koa';
 import type WebSocket from 'ws';
-import type Config from './util/Config';
+import type ProxyConfig from './util/ProxyConfig';
 import type Inspector from './inspector/Inspector';
 import type WebSocketServer from './server/WebSocketServer';
 
 export interface FeproxyApp extends Koa {
-  config: Config;
+  config: ProxyConfig;
   ws: WebSocketServer;
   inspector: Inspector;
   proxyPlugins: ProxyPlugins;

@@ -1,0 +1,110 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 项目定位
+
+FeProxy 是一个类 Fiddler 的抓包代理（Node + Koa），用 Chrome DevTools 前端作为抓包界面，并支持按规则改写/转发 HTTP(S)/WebSocket 请求。发布为 npm 全局 CLI（`bin/feproxy.js` → `lib/cli.js`）。
+
+## 常用命令
+
+```sh
+npm run dev          # tsc -w + webpack -w + nodemon（三个 watch 并行）
+npm run build        # build:ts (tsc → lib/) + build:web (webpack → lib/public/)
+npm run typecheck    # 必须两次：tsc --noEmit（node 侧）+ tsc -p tsconfig.web.json（前端）
+npm run lint         # eslint .（lint-fix 可自动修）
+npm run jest         # 跑测试（cross-env NODE_ENV=testing）
+npm test             # lint + build + jest，CI 用这个
+```
+
+跑单个测试文件/用例：
+
+```sh
+npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --coverage=false
+```
+
+两个坑：
+
+- **必须带 `NODE_ENV=testing`**，`.babelrc` 只在该 env 下开 commonjs transform，直接 `npx jest` 会报 "Cannot use import statement outside a module"。
+- jest 默认 `collectCoverage: true` 且有全局阈值，跑单文件时加 `--coverage=false`，否则必然因阈值失败。
+- 测试直接跑 `src/`（babel-jest），但 `src/util/paths.ts` 指向 `lib/public`，所以涉及静态资源/devtools/admin 页面的用例需要先 `npm run build`。
+
+测试特点：每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 落在 `test/.tmp/`），部分用例会真的访问外网（`https://www.baidu.com/`）。
+
+## 架构
+
+### 1. 连接嗅探层（`src/server/ProxyServer.ts`）
+
+入口不是 `http.createServer`，而是 `net.createServer`，读第一个 data 包后分流：
+
+- `CONNECT host:port` → 回 200 后再读一包：`GET /` 视为 ws 隧道（把 `GET /path` 重写成 `GET ws://host:port/path`）；否则若 `config.https` 为真就用自签证书解密（MITM），为假则裸 TCP 对穿。
+- 首字节 `0x16`（TLS handshake）→ 本机 hostname 的 TLS server。
+- 可打印字节 → HTTP server（同时覆盖普通请求、http 代理、Upgrade）。
+
+分流靠 `socket.pause()/unshift()/resume()`，unshift 必须在 data 回调里同步调用，中间不能 `await`。
+
+CONNECT 分支在回 200 之前先做**代理账号验证**（见下文「代理账号验证」）。
+
+`ServerFactory` 按 `group:hostname:port` 用 LRU 缓存 server 实例；先探测上游真实证书，验证通过（或开了 `ignoreCertError`）用 **trusted** 根证书签发，否则用 **untrust** 根证书 —— 这样浏览器会对本来就有证书问题的站点保持报错。根证书名带用户名后缀（`feproxy-<user>.crt`），存放在 `RC_DIR`（默认 `~/.feproxy`）。
+
+### 2. URL 重建（`src/extend/context.ts`）
+
+MITM 之后请求行只剩 `/path`，`ctx.url` 被重写为 getter，结合 `socket.server.proxy`（`ProxyServer` 打上的 `{hostname, port}` 标记）还原成绝对 URL（`https://host/path`、ws 场景为 `wss://`）。**整个路由和规则匹配都依赖 `ctx.url` 是绝对 URL 这一前提**，`routerPath` 是去掉 querystring 的版本。
+
+### 3. 路由（`src/router.ts`）
+
+koa-router 用正则匹配协议前缀区分「被代理的流量」和「feproxy 自身站点」：
+
+- `^https?://.*` → `middleware/inspect`（发 CDP 事件）+ `middleware/proxy`
+- `^wss?://.*` → `middleware/wsInspect` + `middleware/proxy`
+- 普通路径 → `/feproxy.crt`、`/log`、`/getConfig`、`/setConfig`、`/ws`（CDP）、`/devtools/*`
+
+同一份 routes 同时 `app.use()` 和 `app.ws.use()`。
+
+### 4. WebSocket 接入 Koa（`src/server/WebSocketServer.ts`）
+
+用 `ws` 的 `verifyClient` 钩子造一个 Koa ctx 并跑中间件链，`ctx.accept()` 完成握手并 resolve 出 socket（因此 `ctx.accept` 的语义被替换了，不是 Koa 的内容协商）。响应头通过重写 ctx.set + `headers` 事件注入。中间件没调 `accept` 就自动 404/500。
+
+### 5. 代理插件链（`src/middleware/proxy.ts` + `src/proxy/*` + `src/proxyPlugins.ts`）
+
+- 规则来自 `config.getRules()`（用户 project 规则 + devtools blockedURLs 转成的 404 规则），逐条对 `ctx.url` 做正则匹配；同一 type 只取第一条命中。
+- 之后再把所有插件自带的默认 `match` 兜底进来，按 `priority` 降序组成类似 Koa 的 `next()` 链。
+- `http`/`websocket`（priority 10）是终结插件，不调 `next()`；`header`(50) 在 `next()` 之后改响应头；`host`(50) 通过改写链上 `http` 插件的 param 生效；`delay`(80)、`status`(30)、`file`(20)。
+- 规则 param 里的字符串支持 `$1`、`$2` 反向引用 match 正则的捕获组（见 `matchReg`）。
+- 新增插件 = 在 `src/proxy/` 加文件 + 在 `proxyPlugins.ts` 注册（决定 priority/默认 match）+ 在前端 `component/Project.tsx` 的 `to` 串编解码里加分支。
+
+### 6. Inspector / CDP（`src/inspector/*`）
+
+自己实现了 Chrome DevTools Protocol 的一个子集：`Inspector` 持有多个 `Client`（每个连上 `/ws` 的 devtools 一个），`network`/`page`/`websocket` 三个模块注册 `methods`（响应 devtools 请求，如 `Network.getResponseBody`、`Network.setBlockedURLs`、`Network.replayXHR`）并通过 `sendAll` 主动推事件（`requestWillBeSent`/`responseReceived`/`dataReceived`/`webSocketFrame*` 等）。响应体在 LRU 池里按 requestId 缓存，SSE 走 `eventSourceMessageReceived`。
+
+devtools 前端来自 `chrome-devtools-frontend` 包，只有 `src/frontend/asset/devtools/` 下那 3 个文件是本地覆盖版（见 `controller/devtools.ts` 注释里的下载地址）。
+
+### 7. 代理账号验证（`src/util/proxyAuth.ts`）
+
+Basic 代理认证，账号**写死**在 `config.ts` 的 `auth: { enable, username, password }`（默认 `feproxy/feproxy`，`Config.update()` 会剔除 `auth` 字段，保证不能通过 `/setConfig` 改）。两个入口：
+
+- CONNECT（https / ws 隧道）：`ProxyServer.verifyAuth` 直接从首包原始报文里取 `Proxy-Authorization`，不通过就回 `407 + Proxy-Authenticate` 并 `end()`。
+- `proxy/http.ts`、`proxy/websocket.ts` 转发上游时会删掉 `proxy-authorization` 逐跳头。
+- 测试里 `startApp()` 默认 `auth.enable = false`，需要验证的用例（`test/proxyAuth.test.ts`）自己打开。
+
+### 8. 配置（`src/util/ProxyConfig.ts`）与 CLI（`src/cli.ts`）
+
+CLI 用 yargs 把命令行参数按 `config.ts` 的字段一一映射后传给 `createApp()`：`-p/--port`、`--hostname`、`-c/--config`（对应 `RC_DIR`）、`--https`（`--no-https` 关闭）、`--ignore-cert-error`、`--auth`（`--no-auth` 关闭）、`--username`、`--password`；`version/help` 交给 yargs 内置处理（自动打印并退出）。
+
+关键约定：各选项**只设 `defaultDescription`（取自 `configDefault`）而不设 `default`**，这样 `--help` 能展示真实默认值，同时 argv 里未传的项是 `undefined`，可以区分「用户显式传参」和「用默认值」。最后用 `pickDefined()` 剔除 `undefined` 再传给 `createApp()`，避免把 `config.ts` 的默认值覆盖成 `undefined`。基于这个能力实现了：传 `--username`/`--password` 时自动开启代理验证（`auth.enable = true`），但显式 `--no-auth` 优先。新增配置字段时记得同步补 CLI 参数。
+
+`config.ts` ← `~/.feproxy/config.json` ← `createApp(config)` 参数。`update()` 会把 `projects/https/ignoreCertError` 写回磁盘并重建规则。内置一条规则把 `http(s)://feproxy.org/*` 转发到本机服务，这是 `src/frontend/asset/log.js`（把页面 console 打到终端）能工作的原因。
+
+### 9. 前端（`src/frontend/`）
+
+webpack 多页：`src/frontend/page/*/index.tsx` 每个目录一个 chunk + 同名 `index.html` 模板，产物到 `lib/public/`，`src/frontend/asset/` 整目录拷过去。目前只有 `admin` 页：一个全屏 iframe 嵌 devtools + 设置弹层，redux + thunk 管状态，`setConfig` 自带 1s 防抖合并请求。
+
+UI 上规则显示成单个 `to` 字符串（如 `delay://1000`、`host://1.2.3.4:8080`、`file:///path`），`component/Project.tsx` 里的 `toDisplayRule`/`toWireRule` 负责和后端的 `{type, param}` 互转。
+
+## 约定
+
+- TS 是宽松模式（`strict: false`、`noImplicitAny: false`）。`tsconfig.json` **排除** `src/frontend`，前端由 `tsconfig.web.json` 单独 typecheck，改前端后别忘了这一路。
+- 类型集中在 `src/types.ts`（`FeproxyApp`、`ProxyContext`、`ProxyPlugin*`）和 `src/frontend/page/admin/types.ts`。
+- eslint 风格偏 egg 约定：`[ 'a', 'b' ]` 数组内加空格、单引号、max-len 120、`import/order` 分组、`eqeqeq`。
+- `lib/`、`coverage/`、`test/.tmp/` 都是产物，不要提交也不要手改。
+- commit 用 angular convention（`standard-version` 生成 CHANGELOG，`npm run release` 发版）。
