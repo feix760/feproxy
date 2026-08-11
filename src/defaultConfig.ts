@@ -2,7 +2,7 @@ import os from 'os';
 import path from 'path';
 import type { ConfigData } from './util/ProxyConfig';
 
-const configDefault: ConfigData = {
+const defaultConfig: ConfigData = {
   https: true,
 
   ignoreCertError: false,
@@ -23,4 +23,4 @@ const configDefault: ConfigData = {
   projects: [],
 };
 
-export default configDefault;
+export default defaultConfig;

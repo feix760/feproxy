@@ -38,10 +38,10 @@ class ProxyConfig {
   private [RULES]: Rule[];
   private [BLOCKED_URLS_CACHE]: { key: string; rules: Rule[] };
 
-  constructor(configDefault: ConfigData) {
+  constructor(defaultConfig: ConfigData) {
     let rcConfig = {};
 
-    this.RC_PATH = path.join(configDefault.RC_DIR, 'config.json');
+    this.RC_PATH = path.join(defaultConfig.RC_DIR, 'config.json');
 
     try {
       if (fs.existsSync(this.RC_PATH)) {
@@ -52,7 +52,7 @@ class ProxyConfig {
     }
 
     const config = {
-      ...configDefault,
+      ...defaultConfig,
 
       ...rcConfig,
     };

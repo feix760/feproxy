@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ip from 'ip';
 import Koa from 'koa';
 import koaStatic from 'koa-static';
-import configDefault from './config';
+import defaultConfig from './defaultConfig';
 import extendContext from './extend/context';
 import Inspector from './inspector/Inspector';
 import createProxyPlugins from './proxyPlugins';
@@ -20,10 +20,10 @@ export default (startConfig?: Partial<ConfigData>): FeproxyApp => {
 
   // 合并时剔除 undefined 字段，避免覆盖掉默认配置
   app.config = new ProxyConfig({
-    ...configDefault,
+    ...defaultConfig,
     ...pickDefined(startConfig),
     auth: {
-      ...configDefault.auth,
+      ...defaultConfig.auth,
       ...pickDefined(startConfig?.auth),
     },
   });

@@ -1,6 +1,6 @@
 import yargs from 'yargs';
 import createApp from './App';
-import configDefault from './config';
+import defaultConfig from './defaultConfig';
 import type { ConfigData } from './util/ProxyConfig';
 
 const pkg = require('../package.json');
@@ -11,42 +11,42 @@ export function main() {
     .option('port', {
       type: 'string',
       describe: 'Service port',
-      default: configDefault.port,
+      default: defaultConfig.port,
     })
     .option('hostname', {
       type: 'string',
       describe: 'Hostname of feproxy self site',
-      default: configDefault.hostname,
+      default: defaultConfig.hostname,
     })
     .option('config', {
       type: 'string',
       describe: 'Directory of config files',
-      default: configDefault.RC_DIR,
+      default: defaultConfig.RC_DIR,
     })
     .option('https', {
       type: 'boolean',
       describe: 'Capture and modify https request, use --no-https to disable',
-      default: configDefault.https,
+      default: defaultConfig.https,
     })
     .option('ignore-cert-error', {
       type: 'boolean',
       describe: 'Ignore upstream certificate error',
-      default: configDefault.ignoreCertError,
+      default: defaultConfig.ignoreCertError,
     })
     .option('auth', {
       type: 'boolean',
       describe: 'Enable proxy basic authentication, use --no-auth to disable',
-      default: configDefault.auth?.enable,
+      default: defaultConfig.auth?.enable,
     })
     .option('username', {
       type: 'string',
       describe: 'Username of proxy basic authentication',
-      default: configDefault.auth?.username,
+      default: defaultConfig.auth?.username,
     })
     .option('password', {
       type: 'string',
       describe: 'Password of proxy basic authentication',
-      default: configDefault.auth?.password,
+      default: defaultConfig.auth?.password,
     })
     .version(pkg.version)
     .alias('v', 'version')
@@ -56,10 +56,6 @@ export function main() {
     .example('feproxy --no-https', 'Do not decrypt https request')
     .example('feproxy --no-auth', 'Disable proxy authentication')
     .argv as Record<string, any>;
-
-  if ((argv.username || argv.password) && typeof argv.auth === 'undefined') {
-    argv.auth = true;
-  }
 
   // 命令行参数映射为 config
   const config: Partial<ConfigData> = {
