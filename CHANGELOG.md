@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.2](https://github.com/feix760/feproxy/compare/v3.5.1...v3.5.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* auth 只针对 proxy ([1b3eb86](https://github.com/feix760/feproxy/commit/1b3eb8698703e43845243ce064ee71b7fd03c2a1))
+
 ### [3.5.1](https://github.com/feix760/feproxy/compare/v3.5.0...v3.5.1) (2026-08-11)
 
 
