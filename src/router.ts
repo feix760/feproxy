@@ -4,6 +4,7 @@ import * as devtools from './controller/devtools';
 import * as site from './controller/site';
 import inspect from './middleware/inspect';
 import proxy from './middleware/proxy';
+import siteAuth from './middleware/siteAuth';
 import wsInspect from './middleware/wsInspect';
 import type { FeproxyApp } from './types';
 
@@ -27,6 +28,9 @@ export default (app: FeproxyApp) => {
 
   // ------ site ----------
   // site url is normal
+  // 代理流量的 url 是绝对地址, 已在 socket 层验证过, 这里只拦自身站点(含后面的静态资源)
+  router.all(/^\/[\s\S]*$/, siteAuth as any);
+
   router.get('/feproxy.crt', site.crt as any);
   router.get('/log', site.log as any);
   router.get('/getConfig', site.getConfig as any);

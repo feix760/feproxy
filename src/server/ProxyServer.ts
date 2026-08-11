@@ -51,9 +51,12 @@ class ProxyServer {
 
   onSocket(socket: net.Socket) {
     return this.onceData(socket, async buffer => {
-      // 代理账号验证, 通过后该隧道上的请求不再重复验证
       const raw = buffer.toString();
-      if (!this.verifyAuth(socket, proxyAuth.getRawProxyAuthorization(raw))) {
+      // 代理账号验证, 通过后该隧道上的请求不再重复验证
+      // TLS 首包(ClientHello)无处携带凭据, 往加密连接里写明文 401 只会让对端 hang up,
+      // 这种直连自身站点的场景交给解密后的 `middleware/siteAuth` 验证
+      const isTLS = buffer[0] === 22;
+      if (!isTLS && !this.verifyAuth(proxyAuth.getRawProxyAuthorization(raw))) {
         socket.end(proxyAuth.getProxyAuthRequiredRaw(raw));
         return;
       }
@@ -66,7 +69,7 @@ class ProxyServer {
         const port = +match[2];
         socket.write('HTTP/1.1 200 Connection established\r\n\r\n');
         await this.onConnect(socket, hostname, port); // should resume inner
-      } else if (buffer[0] === 22) {
+      } else if (isTLS) {
         // https: GET /path
         socket.unshift(buffer);
         const server = await this.factory.getTSLServer({ hostname: this.app.config.hostname });
@@ -86,11 +89,8 @@ class ProxyServer {
     });
   }
 
-  /**
-   * 校验代理账号, 校验通过时给 socket 打上标记
-   * 未开启验证时直接通过
-   */
-  verifyAuth(socket: net.Socket, credentials: string) {
+  /** 校验代理账号, 未开启验证时直接通过 */
+  verifyAuth(credentials: string) {
     const { auth } = this.app.config;
     if (!proxyAuth.needAuth(auth)) {
       return true;

@@ -64,7 +64,7 @@ class ProxyConfig {
 
   async update(config: Partial<ConfigData>) {
     const update = { ...config };
-    // 代理账号写死在 config.ts, 不允许通过接口修改
+    // 代理账号写死在 defaultConfig.ts, 不允许通过接口修改
     delete update.auth;
     Object.assign(this, update);
 

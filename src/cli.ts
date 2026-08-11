@@ -48,6 +48,8 @@ export function main() {
       describe: 'Password of proxy basic authentication',
       default: defaultConfig.auth?.password,
     })
+    .alias('p', 'port')
+    .alias('c', 'config')
     .version(pkg.version)
     .alias('v', 'version')
     .describe('version', 'Output the version number')

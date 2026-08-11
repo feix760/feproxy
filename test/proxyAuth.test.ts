@@ -23,6 +23,9 @@ describe('proxy auth test', () => {
     return `http://${auth ? `${auth}@` : ''}127.0.0.1:${app.config.port}`;
   };
 
+  // 直连 feproxy 自身端口的 https 地址
+  const getSiteURL = () => `https://127.0.0.1:${app.config.port}/`;
+
   test('http proxy without credentials should be 407', async () => {
     const response = await rp({
       url: util.getURL(app),
@@ -57,14 +60,50 @@ describe('proxy auth test', () => {
     expect(response.statusCode).not.toEqual(407);
   });
 
-  test('site url should not need credentials', async () => {
+  test('site url without credentials should be 401', async () => {
     const response = await rp({
       url: util.getURL(app),
       simple: false,
       resolveWithFullResponse: true,
     });
 
-    expect(response.statusCode).not.toEqual(407);
+    expect(response.statusCode).toEqual(401);
+    expect(response.headers['www-authenticate']).toMatch(/^Basic/);
+  });
+
+  test('site url with credentials should pass', async () => {
+    const response = await rp({
+      url: util.getURL(app),
+      auth: { user: 'feproxy', pass: 'feproxy' },
+      simple: false,
+      resolveWithFullResponse: true,
+    });
+
+    expect(response.statusCode).not.toEqual(401);
+  });
+
+  test('https site url without credentials should be 401', async () => {
+    const response = await rp({
+      url: getSiteURL(),
+      strictSSL: false,
+      simple: false,
+      resolveWithFullResponse: true,
+    });
+
+    expect(response.statusCode).toEqual(401);
+    expect(response.headers['www-authenticate']).toMatch(/^Basic/);
+  });
+
+  test('https site url with credentials should pass', async () => {
+    const response = await rp({
+      url: getSiteURL(),
+      auth: { user: 'feproxy', pass: 'feproxy' },
+      strictSSL: false,
+      simple: false,
+      resolveWithFullResponse: true,
+    });
+
+    expect(response.statusCode).not.toEqual(401);
   });
 
   test('connect without credentials should fail', async () => {

@@ -29,7 +29,7 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 - jest 默认 `collectCoverage: true` 且有全局阈值，跑单文件时加 `--coverage=false`，否则必然因阈值失败。
 - 测试直接跑 `src/`（babel-jest），但 `src/util/paths.ts` 指向 `lib/public`，所以涉及静态资源/devtools/admin 页面的用例需要先 `npm run build`。
 
-测试特点：每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 落在 `test/.tmp/`），部分用例会真的访问外网（`https://www.baidu.com/`）。
+测试特点：每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 落在 `test/.tmp/`），部分用例会真的访问外网（`https://www.baidu.com/`）。jest 全局 `testEnvironment` 是 node，前端用例（`test/ui.test.tsx`、`test/dbg.test.tsx`）靠文件头 `@jest-environment jsdom` docblock 切换。
 
 ## 架构
 
@@ -43,7 +43,7 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 
 分流靠 `socket.pause()/unshift()/resume()`，unshift 必须在 data 回调里同步调用，中间不能 `await`。
 
-CONNECT 分支在回 200 之前先做**代理账号验证**（见下文「代理账号验证」）。
+分流**之前**先对首包做**代理账号验证**（见下文「代理账号验证」），CONNECT 和明文 HTTP 两支都被覆盖；TLS 那支没法在 socket 层验，走 HTTP 中间件。
 
 `ServerFactory` 按 `group:hostname:port` 用 LRU 缓存 server 实例；先探测上游真实证书，验证通过（或开了 `ignoreCertError`）用 **trusted** 根证书签发，否则用 **untrust** 根证书 —— 这样浏览器会对本来就有证书问题的站点保持报错。根证书名带用户名后缀（`feproxy-<user>.crt`），存放在 `RC_DIR`（默认 `~/.feproxy`）。
 
@@ -67,7 +67,7 @@ koa-router 用正则匹配协议前缀区分「被代理的流量」和「feprox
 
 ### 5. 代理插件链（`src/middleware/proxy.ts` + `src/proxy/*` + `src/proxyPlugins.ts`）
 
-- 规则来自 `config.getRules()`（用户 project 规则 + devtools blockedURLs 转成的 404 规则），逐条对 `ctx.url` 做正则匹配；同一 type 只取第一条命中。
+- 规则来自 `config.getRules(inspector.getBlockedURLs())`：devtools blockedURLs 转成的 `status` 404 规则**排在前面**，然后是用户 project 规则；逐条对 `ctx.url` 做正则匹配，同一 type 只取第一条命中（所以 blockedURLs 的 404 会压过用户的 status 规则）。
 - 之后再把所有插件自带的默认 `match` 兜底进来，按 `priority` 降序组成类似 Koa 的 `next()` 链。
 - `http`/`websocket`（priority 10）是终结插件，不调 `next()`；`header`(50) 在 `next()` 之后改响应头；`host`(50) 通过改写链上 `http` 插件的 param 生效；`delay`(80)、`status`(30)、`file`(20)。
 - 规则 param 里的字符串支持 `$1`、`$2` 反向引用 match 正则的捕获组（见 `matchReg`）。
@@ -81,19 +81,26 @@ devtools 前端来自 `chrome-devtools-frontend` 包，只有 `src/frontend/asse
 
 ### 7. 代理账号验证（`src/util/proxyAuth.ts`）
 
-Basic 代理认证，账号**写死**在 `config.ts` 的 `auth: { enable, username, password }`（默认 `feproxy/feproxy`，`Config.update()` 会剔除 `auth` 字段，保证不能通过 `/setConfig` 改）。两个入口：
+Basic 代理认证，账号**写死**在 `defaultConfig.ts` 的 `auth: { enable, username, password }`（默认 `feproxy/feproxy`、`enable: false`，`ProxyConfig.update()` 会剔除 `auth` 字段，保证不能通过 `/setConfig` 改）。
 
-- CONNECT（https / ws 隧道）：`ProxyServer.verifyAuth` 直接从首包原始报文里取 `Proxy-Authorization`，不通过就回 `407 + Proxy-Authenticate` 并 `end()`。
-- `proxy/http.ts`、`proxy/websocket.ts` 转发上游时会删掉 `proxy-authorization` 逐跳头。
-- 测试里 `startApp()` 默认 `auth.enable = false`，需要验证的用例（`test/proxyAuth.test.ts`）自己打开。
+验证发生在 `ProxyServer.onSocket` 里，位置是**协议分流之前**、对每条连接的首包做一次（通过后整条隧道/连接不再重复验证），TLS 首包除外。`proxyAuth.getRawProxyAuthorization` 直接正则扫首包原始报文，按报文是否像代理请求（`CONNECT` 或 `GET http…`）分两种口径：
+
+- 像代理请求 → 读 `Proxy-Authorization`，失败回 `407 + Proxy-Authenticate` 并 `end()`。
+- 其他（含直连 feproxy 自身站点）→ 读 `Authorization`，失败回 `401 + WWW-Authenticate`。所以开了 auth 之后 admin 页、`/getConfig`、`/feproxy.crt` 也要带 Basic 凭据。
+
+TLS 首包（ClientHello）没有任何地方能携带凭据，所以 `buffer[0] === 22` 这一支**跳过** socket 层验证（往 TLS 连接里写明文 401 会直接 socket hang up），改由解密后的 `middleware/siteAuth` 校验 `Authorization` 并回 401。该中间件挂在 router 的 site 段（`/^\/[\s\S]*$/`，只匹配非绝对 url，所以代理流量不会被二次拦截），覆盖 `/getConfig`、`/feproxy.crt` 以及后面 koa-static 的 admin 页。
+
+仍然不通的是 `/ws`：浏览器无法在 WebSocket 握手里带 `Authorization`，开 auth 后 devtools 界面连不上。
+
+`proxy/http.ts`、`proxy/websocket.ts` 转发上游时会删掉 `proxy-authorization` 逐跳头。测试里 `startApp()` 默认 `auth.enable = false`，需要验证的用例自己打开。
 
 ### 8. 配置（`src/util/ProxyConfig.ts`）与 CLI（`src/cli.ts`）
 
-CLI 用 yargs 把命令行参数按 `config.ts` 的字段一一映射后传给 `createApp()`：`-p/--port`、`--hostname`、`-c/--config`（对应 `RC_DIR`）、`--https`（`--no-https` 关闭）、`--ignore-cert-error`、`--auth`（`--no-auth` 关闭）、`--username`、`--password`；`version/help` 交给 yargs 内置处理（自动打印并退出）。
+CLI 用 yargs 把命令行参数按 `defaultConfig.ts` 的字段一一映射后传给 `createApp()`：`--port`、`--hostname`、`--config`（对应 `RC_DIR`）、`--https`（`--no-https` 关闭）、`--ignore-cert-error`、`--auth`（`--no-auth` 关闭）、`--username`、`--password`；短别名只有 `-p/--port`、`-c/--config`、`-v/--version`，`version/help` 交给 yargs 内置处理（自动打印并退出）。新增配置字段时记得同步补 CLI 参数。
 
-关键约定：各选项**只设 `defaultDescription`（取自 `configDefault`）而不设 `default`**，这样 `--help` 能展示真实默认值，同时 argv 里未传的项是 `undefined`，可以区分「用户显式传参」和「用默认值」。最后用 `pickDefined()` 剔除 `undefined` 再传给 `createApp()`，避免把 `config.ts` 的默认值覆盖成 `undefined`。基于这个能力实现了：传 `--username`/`--password` 时自动开启代理验证（`auth.enable = true`），但显式 `--no-auth` 优先。新增配置字段时记得同步补 CLI 参数。
+各选项的 `default` 直接取自 `defaultConfig`，所以 argv 里恒有值。
 
-`config.ts` ← `~/.feproxy/config.json` ← `createApp(config)` 参数。`update()` 会把 `projects/https/ignoreCertError` 写回磁盘并重建规则。内置一条规则把 `http(s)://feproxy.org/*` 转发到本机服务，这是 `src/frontend/asset/log.js`（把页面 console 打到终端）能工作的原因。
+配置优先级：`defaultConfig.ts` ← `~/.feproxy/config.json` ← `createApp(config)` 参数。`App.ts` 合并时用 `pickDefined()` 剔除 `undefined`（`auth` 子对象单独再合一次），避免调用方传部分字段时把默认值打成 `undefined`。`ProxyConfig.update()` 会把 `projects/https/ignoreCertError` 写回磁盘并重建规则。内置一条规则把 `http(s)://feproxy.org/*` 转发到本机服务，这是 `src/frontend/asset/log.js`（把页面 console 打到终端）能工作的原因。
 
 ### 9. 前端（`src/frontend/`）
 
