@@ -83,14 +83,9 @@ devtools 前端来自 `chrome-devtools-frontend` 包，只有 `src/frontend/asse
 
 Basic 代理认证，账号**写死**在 `defaultConfig.ts` 的 `auth: { enable, username, password }`（默认 `feproxy/feproxy`、`enable: false`，`ProxyConfig.update()` 会剔除 `auth` 字段，保证不能通过 `/setConfig` 改）。
 
-验证发生在 `ProxyServer.onSocket` 里，位置是**协议分流之前**、对每条连接的首包做一次（通过后整条隧道/连接不再重复验证），TLS 首包除外。`proxyAuth.getRawProxyAuthorization` 直接正则扫首包原始报文，按报文是否像代理请求（`CONNECT` 或 `GET http…`）分两种口径：
+**auth 只作用于代理流量**，直连 feproxy 自身站点（admin 页、`/getConfig`、`/feproxy.crt`、`/ws`）一律不验证，所以开 auth 不影响 devtools 界面。
 
-- 像代理请求 → 读 `Proxy-Authorization`，失败回 `407 + Proxy-Authenticate` 并 `end()`。
-- 其他（含直连 feproxy 自身站点）→ 读 `Authorization`，失败回 `401 + WWW-Authenticate`。所以开了 auth 之后 admin 页、`/getConfig`、`/feproxy.crt` 也要带 Basic 凭据。
-
-TLS 首包（ClientHello）没有任何地方能携带凭据，所以 `buffer[0] === 22` 这一支**跳过** socket 层验证（往 TLS 连接里写明文 401 会直接 socket hang up），改由解密后的 `middleware/siteAuth` 校验 `Authorization` 并回 401。该中间件挂在 router 的 site 段（`/^\/[\s\S]*$/`，只匹配非绝对 url，所以代理流量不会被二次拦截），覆盖 `/getConfig`、`/feproxy.crt` 以及后面 koa-static 的 admin 页。
-
-仍然不通的是 `/ws`：浏览器无法在 WebSocket 握手里带 `Authorization`，开 auth 后 devtools 界面连不上。
+验证发生在 `ProxyServer.onSocket` 里，位置是**协议分流之前**、对每条连接的首包做一次（通过后整条隧道/连接不再重复验证）：`proxyAuth.isProxyRaw` 正则判断首包是否代理请求（`CONNECT host:port` 或 `GET http://host/path`），是则用 `getRawProxyAuthorization` 扫原始报文里的 `Proxy-Authorization`，失败回 `407 + Proxy-Authenticate` 并 `end()`。TLS 首包（ClientHello）不是代理请求，自然被跳过（往 TLS 连接里写明文响应只会让对端 hang up）。
 
 `proxy/http.ts`、`proxy/websocket.ts` 转发上游时会删掉 `proxy-authorization` 逐跳头。测试里 `startApp()` 默认 `auth.enable = false`，需要验证的用例自己打开。
 

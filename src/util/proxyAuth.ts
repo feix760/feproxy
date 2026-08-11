@@ -30,27 +30,23 @@ export const verifyCredentials = (credentials: string, auth: AuthConfig) => {
     decoded.slice(index + 1) === (auth.password || '');
 };
 
+/** 首包报文是否是代理请求(`CONNECT host:port` 或 `GET http://host/path`), 只有代理请求才需要验证 */
+export const isProxyRaw = (raw: string) => {
+  return /^CONNECT\b/i.test(raw) || /^[a-z]+\s+https?:\/\//i.test(raw);
+};
+
 /** 从原始报文头中取出 proxy-authorization (CONNECT 阶段还没有 http server 解析报文) */
 export const getRawProxyAuthorization = (raw: string) => {
-  const isProxy = /^CONNECT\b/i.test(raw) || /^GET\s+http/i.test(raw);
-  const match = isProxy
-    ? /\r\nproxy-authorization:[ \t]*([^\r\n]*)/i.exec(raw)
-    : /\r\nauthorization:[ \t]*([^\r\n]*)/i.exec(raw);
+  const match = /\r\nproxy-authorization:[ \t]*([^\r\n]*)/i.exec(raw);
   return match ? match[1] : '';
 };
 
 /** 407 响应报文, 用于 CONNECT 阶段直接写回 socket */
-export const getProxyAuthRequiredRaw = (raw: string) => {
-  const isProxy = /^CONNECT\b/i.test(raw) || /^GET\s+http/i.test(raw);
+export const getProxyAuthRequiredRaw = () => {
   return [
-    ...(isProxy ? [
-      'HTTP/1.1 407 Proxy Authentication Required',
-      `Proxy-Authenticate: ${AUTHENTICATE}`,
-      'Proxy-Agent: feproxy',
-    ] : [
-      'HTTP/1.1 401 Unauthorized',
-      `WWW-Authenticate: ${AUTHENTICATE}`,
-    ]),
+    'HTTP/1.1 407 Proxy Authentication Required',
+    `Proxy-Authenticate: ${AUTHENTICATE}`,
+    'Proxy-Agent: feproxy',
     'Content-Length: 0',
     'Connection: close',
     '',

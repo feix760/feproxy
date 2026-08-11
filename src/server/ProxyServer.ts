@@ -52,12 +52,11 @@ class ProxyServer {
   onSocket(socket: net.Socket) {
     return this.onceData(socket, async buffer => {
       const raw = buffer.toString();
-      // 代理账号验证, 通过后该隧道上的请求不再重复验证
-      // TLS 首包(ClientHello)无处携带凭据, 往加密连接里写明文 401 只会让对端 hang up,
-      // 这种直连自身站点的场景交给解密后的 `middleware/siteAuth` 验证
       const isTLS = buffer[0] === 22;
-      if (!isTLS && !this.verifyAuth(proxyAuth.getRawProxyAuthorization(raw))) {
-        socket.end(proxyAuth.getProxyAuthRequiredRaw(raw));
+      // 代理账号验证, 通过后该隧道上的请求不再重复验证
+      // 只验证代理请求, 直连 feproxy 自身站点(含 TLS 首包)不需要凭据
+      if (proxyAuth.isProxyRaw(raw) && !this.verifyAuth(proxyAuth.getRawProxyAuthorization(raw))) {
+        socket.end(proxyAuth.getProxyAuthRequiredRaw());
         return;
       }
       socket.pause();
