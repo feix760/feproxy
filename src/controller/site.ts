@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import ip from 'ip';
 import ServerFactory from '../server/ServerFactory';
+import type { ConfigData } from '../util/ProxyConfig';
 import type { ProxyContext } from '../types';
 
 export const crt = async (ctx: ProxyContext) => {
@@ -34,7 +35,8 @@ export const log = async (ctx: ProxyContext) => {
 };
 
 export const setConfig = async (ctx: ProxyContext) => {
-  await ctx.app.config.update(ctx.request.body);
+  // koa-body 把 body 标成 JsonValue, 这里只可能是 setConfig 的对象
+  await ctx.app.config.update(ctx.request.body as Partial<ConfigData>);
 
   ctx.body = ctx.app.config;
 };

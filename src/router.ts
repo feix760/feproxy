@@ -1,5 +1,5 @@
-import koaBody from 'koa-body';
-import Router from 'koa-router';
+import Router from '@koa/router';
+import { koaBody } from 'koa-body';
 import * as devtools from './controller/devtools';
 import * as site from './controller/site';
 import inspect from './middleware/inspect';

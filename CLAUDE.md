@@ -29,7 +29,7 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 - jest 默认 `collectCoverage: true` 且有全局阈值，跑单文件时加 `--coverage=false`，否则必然因阈值失败。
 - 测试直接跑 `src/`（babel-jest），但 `src/util/paths.ts` 指向 `lib/public`，所以涉及静态资源/devtools/admin 页面的用例需要先 `npm run build`。
 
-测试特点：每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 落在 `test/.tmp/`），部分用例会真的访问外网（`https://www.baidu.com/`）。jest 全局 `testEnvironment` 是 node，前端用例（`test/ui.test.tsx`、`test/dbg.test.tsx`）靠文件头 `@jest-environment jsdom` docblock 切换。
+测试特点：每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 落在 `test/.tmp/`），部分用例会真的访问外网（`https://www.baidu.com/`）。jest 全局 `testEnvironment` 是 node，前端用例（`test/ui.test.tsx`、`test/dbg.test.tsx`）靠文件头 `@jest-environment <rootDir>/test/util/jsdomEnvironment.js` docblock 切换——那是个继承 jsdom 的自定义环境，把 jsdom 缺的 node web 全局（`ReadableStream`/`Response`/`TextEncoder` 等）补进去，否则 koa 3 的 `response.body` setter 和 koa-body 的 formidable 依赖链会直接抛 `ReferenceError`（注意 docblock 里的路径是相对 `rootDir` 解析的，写 `./util/...` 找不到）。
 
 ## 架构
 
@@ -51,15 +51,19 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 
 MITM 之后请求行只剩 `/path`，`ctx.url` 被重写为 getter，结合 `socket.server.proxy`（`ProxyServer` 打上的 `{hostname, port}` 标记）还原成绝对 URL（`https://host/path`、ws 场景为 `wss://`）。**整个路由和规则匹配都依赖 `ctx.url` 是绝对 URL 这一前提**，`routerPath` 是去掉 querystring 的版本。
 
+`routerPath` 存在的唯一目的就是喂给 router 做匹配，但 `@koa/router` 取匹配路径的顺序是 `opts.routerPath || ctx.newRouterPath || ctx.path || ctx.routerPath`——只有 pathname 的 `ctx.path` 排在 `routerPath` 前面，会让所有绝对 URL 路由失配，所以这里额外定义了优先级最高的 `newRouterPath` getter（返回同一个值）。另外 router 匹配完会回写 `ctx.routerPath = layer.path`，而它的 dist 是 `use strict`，只有 getter 会直接抛 `TypeError`，因此 `routerPath` 配了一个空 setter 吞掉写入。**升级 router 时这两处都要复查。**
+
 ### 3. 路由（`src/router.ts`）
 
-koa-router 用正则匹配协议前缀区分「被代理的流量」和「feproxy 自身站点」：
+`@koa/router` 用正则匹配协议前缀区分「被代理的流量」和「feproxy 自身站点」：
 
 - `^https?://.*` → `middleware/inspect`（发 CDP 事件）+ `middleware/proxy`
 - `^wss?://.*` → `middleware/wsInspect` + `middleware/proxy`
 - 普通路径 → `/feproxy.crt`、`/log`、`/getConfig`、`/setConfig`、`/ws`（CDP）、`/devtools/*`
 
 同一份 routes 同时 `app.use()` 和 `app.ws.use()`。
+
+正则路由的匿名捕获组**不会**进 `ctx.params`（`@koa/router` 只填命名参数），要从 `ctx.captures` 取，且 `captures` 没做 urldecode（见 `controller/devtools.ts`）。
 
 ### 4. WebSocket 接入 Koa（`src/server/WebSocketServer.ts`）
 

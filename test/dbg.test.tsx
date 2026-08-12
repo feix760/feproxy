@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @jest-environment <rootDir>/test/util/jsdomEnvironment.js
  */
 jest.mock('brotli', () => ({ decompress: () => Buffer.alloc(0) }));
 import { render } from '@testing-library/react';

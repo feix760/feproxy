@@ -47,6 +47,18 @@ export default (app: FeproxyApp) => {
         // reserve protocol and remove querystring
         return this.url.replace(/\?[\s\S]*$/, '');
       },
+      // @koa/router 匹配后会回写 ctx.routerPath = layer.path, 这里吞掉写入保住 getter
+      // (它的 dist 是 use strict, 只有 getter 会直接抛 TypeError)
+      set() {},
+    },
+    // @koa/router 取匹配路径的顺序是
+    // `opts.routerPath || ctx.newRouterPath || ctx.path || ctx.routerPath`,
+    // ctx.path 只有 pathname, 排在 routerPath 前面会让绝对 URL 的路由全部失配,
+    // 所以用优先级最高的 newRouterPath 把绝对 URL 喂进去
+    newRouterPath: {
+      get(this: ProxyContext) {
+        return this.routerPath;
+      },
     },
   });
 };

@@ -17,7 +17,8 @@ const localFiles = [
 ];
 
 const staticFile = async (ctx: ProxyContext) => {
-  const filename = ctx.params[0];
+  // @koa/router 不再把正则的匿名捕获组写进 ctx.params, 只能从 ctx.captures 取
+  const filename = decodeURIComponent(ctx.captures[0] || '');
   const filepath = path.join(localFiles.includes(filename) ? DEVTOOLS_DIR : chromeDevTools, filename);
   if (await fs.pathExists(filepath)) {
     ctx.set('Content-Type', mime.lookup(filepath) || '');

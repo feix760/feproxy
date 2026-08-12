@@ -1,5 +1,5 @@
 /**
- * @jest-environment jsdom
+ * @jest-environment <rootDir>/test/util/jsdomEnvironment.js
  */
 // brotli ships an emscripten bundle that takes the browser branch when `window`
 // exists and then blows up; it is only a node<10 fallback and unused here.

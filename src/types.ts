@@ -29,8 +29,10 @@ interface ProxyContextExtras {
   };
   requestId?: string;
   routerPath: string;
-  // filled in by koa-router; regexp routes get numeric keys
-  params: Record<string | number, string>;
+  // filled in by @koa/router; only named params land here
+  params: Record<string, string>;
+  // filled in by @koa/router; regexp routes expose their capture groups here
+  captures: string[];
 }
 
 export type ProxyContext = Omit<KoaContext, keyof ProxyContextExtras> & ProxyContextExtras;
