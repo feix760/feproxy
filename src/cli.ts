@@ -10,6 +10,7 @@ export function main() {
     .usage('Usage: feproxy [options]')
     .option('port', {
       type: 'string',
+      alias: 'p',
       describe: 'Service port',
       default: defaultConfig.port,
     })
@@ -20,6 +21,7 @@ export function main() {
     })
     .option('config', {
       type: 'string',
+      alias: 'c',
       describe: 'Directory of config files',
       default: defaultConfig.RC_DIR,
     })
@@ -53,8 +55,7 @@ export function main() {
       describe: 'Password of proxy basic authentication',
       default: defaultConfig.auth?.password,
     })
-    .alias('p', 'port')
-    .alias('c', 'config')
+    // 别名写在 option 里而不是单独 .alias()，yargs 17 后者会让 --help 丢掉 [default] 标注
     .version(pkg.version)
     .alias('v', 'version')
     .describe('version', 'Output the version number')
