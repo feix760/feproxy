@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.6.0](https://github.com/feix760/feproxy/compare/v3.5.2...v3.6.0) (2026-08-12)
+
+
+### Features
+
+* 升级 node-forge ([39a841a](https://github.com/feix760/feproxy/commit/39a841a20991fd3b27d5e2769a6e1168aa356c86))
+* 升级依赖 ([090e38f](https://github.com/feix760/feproxy/commit/090e38f274d0e276ca52a585ee22d9ef8344bd07))
+* 升级koa* ([2f6a689](https://github.com/feix760/feproxy/commit/2f6a68929b7c739aa5c94500888e73ced101f92b))
+* 升级nodemon/ip/yargs ([7fb8248](https://github.com/feix760/feproxy/commit/7fb8248575121b8bb7ec8026bc0eb5a0a89a0e4c))
+* 使用node-fetch替换request ([fe77e89](https://github.com/feix760/feproxy/commit/fe77e89d76807e855001249aa546a99b8487e20f))
+* 新增 --inspect 参数 ([8b91b96](https://github.com/feix760/feproxy/commit/8b91b9699fc30bef9fd4802e09dafe102113062a))
+
 ### [3.5.2](https://github.com/feix760/feproxy/compare/v3.5.1...v3.5.2) (2026-08-11)
 
 
