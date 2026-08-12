@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.7.0](https://github.com/feix760/feproxy/compare/v3.6.0...v3.7.0) (2026-08-12)
+
+
+### Features
+
+* 升级chrome devtools ([f372128](https://github.com/feix760/feproxy/commit/f3721288e4643e152dc1a0b042f4136c60db1ba6))
+* 优化server ([6a2f71a](https://github.com/feix760/feproxy/commit/6a2f71a7b78e904b4d551bc02a870a2ccd02bee5))
+
 ## [3.6.0](https://github.com/feix760/feproxy/compare/v3.5.2...v3.6.0) (2026-08-12)
 
 
