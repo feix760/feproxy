@@ -44,7 +44,7 @@ export default function App() {
         <div className="close-button el-icon-close" onClick={onCloseSettings}></div>
         <div className="box">
           <h3 className="box-header">
-            FEProxy
+            FeProxy
           </h3>
           <div className="box-content">
             <div className="settings-item">

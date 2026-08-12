@@ -43,7 +43,7 @@ feproxy [options]
 | Option | Default | Description |
 | --- | --- | --- |
 | `-p, --port` | `8888` | Service port |
-| `--hostname` | `feproxy.org` | Hostname of feproxy self site |
+| `--hostname` | `feproxy.org` | Hostname of FeProxy self site |
 | `-c, --config` | `~/.feproxy` | Directory of config files |
 | `--https` / `--no-https` | `true` | Decrypt (MITM) https requests so they can be captured and modified |
 | `--ignore-cert-error` | `false` | Ignore upstream certificate errors |
@@ -62,7 +62,7 @@ feproxy --auth --username me --password pwd   # require proxy credentials
 ```
 
 Authentication applies to proxied traffic only — the inspect page, `/feproxy.crt` and the
-other feproxy endpoints stay open. Credentials cannot be changed from the inspect page.
+other FeProxy endpoints stay open. Credentials cannot be changed from the inspect page.
 
 ### Rules
 

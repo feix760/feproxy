@@ -16,7 +16,7 @@ export function main() {
     })
     .option('hostname', {
       type: 'string',
-      describe: 'Hostname of feproxy self site',
+      describe: 'Hostname of FeProxy self site',
       default: defaultConfig.hostname,
     })
     .option('config', {
