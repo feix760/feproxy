@@ -98,7 +98,7 @@
     "less": "^4.8.1",
     "less-loader": "^13.0.0",
     "mini-css-extract-plugin": "^2.10.2",
-    "nodemon": "^1.17.2",
+    "nodemon": "^3.1.14",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",
