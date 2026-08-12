@@ -1,7 +1,7 @@
 import http from 'http';
 import fs from 'fs-extra';
 import getPort from 'get-port';
-import rp from 'request-promise';
+import fetch from 'node-fetch';
 import type { FeproxyApp } from '../src/types';
 import * as util from './util/util';
 
@@ -33,13 +33,11 @@ describe('proxy rule test', () => {
       } ],
     });
     const st = Date.now();
-    const response = await rp({
-      url,
-      strictSSL: false,
-      proxy: util.getURL(app),
-      resolveWithFullResponse: true,
+    const response = await fetch(url, {
+      agent: util.getProxyAgent(app),
     });
-    expect(response.statusCode).toEqual(200);
+    await response.text();
+    expect(response.status).toEqual(200);
     expect(Date.now() - st).toBeGreaterThan(delay);
   });
 
@@ -60,22 +58,17 @@ describe('proxy rule test', () => {
         } ],
       } ],
     });
-    const optionsResponse = await rp({
-      url,
+    const optionsResponse = await fetch(url, {
       method: 'OPTIONS',
-      strictSSL: false,
-      resolveWithFullResponse: true,
-      proxy: util.getURL(app),
+      agent: util.getProxyAgent(app),
     });
-    expect(optionsResponse.statusCode).toEqual(204);
-    expect(optionsResponse.headers['access-control-allow-origin']).toBeTruthy();
-    const response = await rp({
-      url,
-      strictSSL: false,
-      proxy: util.getURL(app),
+    expect(optionsResponse.status).toEqual(204);
+    expect(optionsResponse.headers.get('access-control-allow-origin')).toBeTruthy();
+    const response = await fetch(url, {
+      agent: util.getProxyAgent(app),
     });
     const fileContent = await fs.readFile(filePath);
-    expect(response).toEqual(fileContent.toString());
+    expect(await response.text()).toEqual(fileContent.toString());
   });
 
   test('rule header test', async () => {
@@ -95,13 +88,11 @@ describe('proxy rule test', () => {
         } ],
       } ],
     });
-    const response = await rp({
-      url,
-      strictSSL: false,
-      proxy: util.getURL(app),
-      resolveWithFullResponse: true,
+    const response = await fetch(url, {
+      agent: util.getProxyAgent(app),
     });
-    expect(response.headers[key]).toEqual(key);
+    await response.text();
+    expect(response.headers.get(key)).toEqual(key);
   });
 
   test('rule host test', async () => {
@@ -128,14 +119,14 @@ describe('proxy rule test', () => {
     });
     server.listen(param.port);
 
-    const response = await rp({
-      url,
-      proxy: util.getURL(app),
+    const response = await fetch(url, {
+      agent: util.getProxyAgent(app),
     });
+    const body = await response.text();
 
     server.close();
 
-    expect(response).toEqual('success');
+    expect(body).toEqual('success');
   });
 
   test('rule status test', async () => {
@@ -157,21 +148,13 @@ describe('proxy rule test', () => {
       } ],
     });
 
-    let response;
-    try {
-      await rp({
-        url,
-        proxy: util.getURL(app),
-        strictSSL: false,
-        followRedirect: false,
-        resolveWithFullResponse: true,
-      });
-    } catch (err) {
-      // test redirect will throw error
-      response = err && err.response;
-    }
-    expect(response).toBeTruthy();
-    expect(response.statusCode).toEqual(param.status);
-    expect(response.headers.location).toEqual(param.location);
+    const response = await fetch(url, {
+      agent: util.getProxyAgent(app),
+      redirect: 'manual',
+    });
+    await response.text();
+
+    expect(response.status).toEqual(param.status);
+    expect(response.headers.get('location')).toEqual(param.location);
   });
 });

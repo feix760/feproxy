@@ -1,5 +1,5 @@
 import getPort from 'get-port';
-import rp from 'request-promise';
+import fetch from 'node-fetch';
 import WebSocket from 'ws';
 import type { FeproxyApp } from '../src/types';
 import ProxyAgent from './util/ProxyAgent';
@@ -113,12 +113,10 @@ describe('inspect test', () => {
     const url = util.getTestURL();
     const [ request ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
-      rp({
-        url,
+      fetch(url, {
         method: 'GET',
-        strictSSL: false,
-        proxy: util.getURL(app),
-      }),
+        agent: util.getProxyAgent(app),
+      }).then(res => res.text()),
     ]);
 
     expect(request.requestId).toBeTruthy();
@@ -220,42 +218,26 @@ describe('inspect test', () => {
       urls: [ url ],
     });
 
-    let response;
-    try {
-      response = await rp({
-        url,
-        strictSSL: false,
-        proxy: util.getURL(app),
-        resolveWithFullResponse: true,
-      });
-    } catch (err) {
-      // test redirect will throw error
-      response = err && err.response;
-    }
-    expect(response.statusCode).toEqual(404);
+    let response = await fetch(url, {
+      agent: util.getProxyAgent(app),
+    });
+    await response.text();
+    expect(response.status).toEqual(404);
 
     inspector.close();
 
-    try {
-      response = await rp({
-        url,
-        strictSSL: false,
-        proxy: util.getURL(app),
-        resolveWithFullResponse: true,
-      });
-    } catch (err) {
-      // test redirect will throw error
-      response = err && err.response;
-    }
-    expect(response.statusCode).toEqual(200);
+    response = await fetch(url, {
+      agent: util.getProxyAgent(app),
+    });
+    await response.text();
+    expect(response.status).toEqual(200);
   });
 
   test('devtools static files', async () => {
-    const response = await rp({
-      url: `${util.getURL(app)}devtools/SupportedCSSProperties.js`,
-    });
+    const response = await fetch(`${util.getURL(app)}devtools/SupportedCSSProperties.js`);
 
-    expect(response).toBeTruthy();
+    expect(response.status).toEqual(200);
+    expect(await response.text()).toBeTruthy();
   });
 
   test('gzip test', async () => {
@@ -271,12 +253,10 @@ describe('inspect test', () => {
     ] = await Promise.all([
       inspector.waitMethod('Network.responseReceived'),
       inspector.waitMethod('Network.loadingFinished'),
-      rp({
-        url,
-        gzip: true,
-        strictSSL: false,
-        proxy: util.getURL(app),
-      }),
+      // node-fetch 默认带 accept-encoding: gzip,deflate
+      fetch(url, {
+        agent: util.getProxyAgent(app),
+      }).then(res => res.text()),
     ]);
 
     expect(/gzip/i.test(responseReceived.response.requestHeaders['accept-encoding'])).toEqual(true);
@@ -295,12 +275,9 @@ describe('inspect test', () => {
 
     const [ requestSendInfo ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
-      rp({
-        url,
-        gzip: true,
-        strictSSL: false,
-        proxy: util.getURL(app),
-      }),
+      fetch(url, {
+        agent: util.getProxyAgent(app),
+      }).then(res => res.text()),
     ]);
 
     expect(requestSendInfo.requestId).toBeTruthy();
@@ -339,13 +316,11 @@ describe('inspect disabled test', () => {
     });
 
     // 关闭抓包后请求依然可以正常转发
-    const response = await rp({
-      url: util.getTestURL(),
-      strictSSL: false,
-      proxy: util.getURL(app),
+    const response = await fetch(util.getTestURL(), {
+      agent: util.getProxyAgent(app),
     });
 
-    expect(response).toBeTruthy();
+    expect(await response.text()).toBeTruthy();
 
     // 等一会儿, 确认没有事件推送到 devtools
     await new Promise(resolve => setTimeout(resolve, 500));

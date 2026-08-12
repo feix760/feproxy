@@ -1,4 +1,4 @@
-import rp from 'request-promise';
+import fetch from 'node-fetch';
 import type { FeproxyApp } from '../src/types';
 import * as util from './util/util';
 
@@ -17,55 +17,43 @@ describe('proxy test', () => {
   });
 
   test('proxy http', async () => {
-    const url = util.getURL(app);
-    const response = await rp({
-      url,
-      proxy: url,
+    const response = await fetch(util.getURL(app), {
+      agent: util.getProxyAgent(app),
     });
 
-    expect(response).toBeTruthy();
+    expect(response.status).toEqual(200);
+    expect(await response.text()).toBeTruthy();
   });
 
   test('proxy https', async () => {
-    const url = util.getURL(app);
-    const response = await rp({
-      url: `https://${app.config.hostname}/`,
-      proxy: url,
-      strictSSL: false,
+    const response = await fetch(`https://${app.config.hostname}/`, {
+      agent: util.getProxyAgent(app),
     });
 
-    expect(response).toBeTruthy();
+    expect(response.status).toEqual(200);
+    expect(await response.text()).toBeTruthy();
   });
 
   test('proxy keep alive', async () => {
-    const url = util.getURL(app);
-    await rp({
-      url,
-      proxy: url,
-      forever: true,
-    });
+    const agent = util.getProxyAgent(app, { keepAlive: true });
+    const first = await fetch(util.getURL(app), { agent });
+    await first.text();
 
-    const response = await rp({
-      url,
-      proxy: url,
-      forever: true,
-      resolveWithFullResponse: true,
-    });
+    const response = await fetch(util.getURL(app), { agent });
 
-    expect(response.headers['proxy-connection']).toEqual('keep-alive');
-    expect(response.body).toBeTruthy();
+    expect(response.headers.get('proxy-connection')).toEqual('keep-alive');
+    expect(await response.text()).toBeTruthy();
   });
 
   test('proxy https use connect', async () => {
-    const url = util.getURL(app);
     app.config.https = false;
-    const response = await rp({
-      url: util.getTestURL(),
-      proxy: url,
-      strictSSL: true,
+    const response = await fetch(util.getTestURL(), {
+      // 裸 TCP 对穿, 拿到的是上游真实证书, 所以要校验
+      agent: util.getProxyAgent(app, { rejectUnauthorized: true }),
     });
     app.config.https = true;
 
-    expect(response).toBeTruthy();
+    expect(response.status).toEqual(200);
+    expect(await response.text()).toBeTruthy();
   });
 });

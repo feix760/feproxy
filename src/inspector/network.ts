@@ -1,7 +1,8 @@
 import Stream from 'stream';
 import LRU from 'lru-cache';
-import rp from 'request-promise';
+import fetch from 'node-fetch';
 import * as inspectorUtil from '../util/inspectorUtil';
+import proxyAgent from '../util/proxyAgent';
 import type { InspectorMessage, InspectorModuleResult, ProxyContext } from '../types';
 import type Client from './Client';
 import type Inspector from './Inspector';
@@ -233,15 +234,22 @@ export default (inspector: Inspector): InspectorModuleResult => {
       const { requestId } = params;
       const info = requestInfoPool.get(requestId);
       if (info) {
-        rp({
-          url: info.url,
+        fetch(info.url, {
           method: info.method,
           headers: info.headers,
-          body: info.postData || '',
-          proxy: `http://127.0.0.1:${inspector.app.config.port}`,
-          strictSSL: false,
-          followRedirect: false,
+          // node-fetch 不允许 GET/HEAD 带 body
+          body: /^(GET|HEAD)$/i.test(info.method) ? undefined : info.postData || '',
+          agent: proxyAgent(`http://127.0.0.1:${inspector.app.config.port}`, {
+            rejectUnauthorized: false,
+          }),
+          redirect: 'manual',
+          // 回放只是让请求重新走一遍代理, 保持请求头和原请求一致, 不额外加 accept-encoding
+          compress: false,
         })
+          .then(res => {
+            // 响应内容不需要, 但要消费掉, 否则连接一直挂着(抓包也就收不到 loadingFinished)
+            res.body.resume();
+          })
           .catch(() => {
             // ignore
           });
