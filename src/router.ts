@@ -37,6 +37,9 @@ export default (app: FeproxyApp) => {
   router.get('/ws', devtools.ws as any);
   // devtools static files
   router.get(/\/devtools\/(.+)/, devtools.static as any);
+  // devtools 里 worker 的 url 是相对主 chunk 算的(`../../entrypoints/...`), 落在站点根上,
+  // 文件同样从 devtools 目录取(见 asset/devtools/entrypoints/)
+  router.get(/^\/(entrypoints\/.+)$/, devtools.static as any);
 
   // use routes to app
   app.use(routes);

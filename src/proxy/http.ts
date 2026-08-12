@@ -100,7 +100,11 @@ const httpProxy: ProxyPluginFn = async (ctx, next, param) => {
   // set for inspect
   ctx.proxy = proxy;
 
-  if (method !== 'HEAD') {
+  // 没有响应体的响应不要挂 body: koa 对 204/205/304 直接 `ctx.body = null` + `res.end()`,
+  // 而 body 的 setter 已经给流注册了 `onFinish(res, destroy)`, 这个 PassThrough 会被 destroy 掉 ——
+  // 只有 'close' 没有 'end', 抓包那边读它永远等不到结束(devtools 收不到 loadingFinished,
+  // 请求一直显示 pending, streamResourceContent 还要干等满超时)。
+  if (method !== 'HEAD' && !statuses.empty[ctx.status]) {
     // 用PassThrough规避keep-alive导致"socket hang up"
     const pass = new Stream.PassThrough();
     proxy.res.pipe(pass);
@@ -109,6 +113,11 @@ const httpProxy: ProxyPluginFn = async (ctx, next, param) => {
     if (!proxy.res.headers['content-type']) {
       ctx.type = '';
     }
+  } else {
+    // 这里不能设 ctx.body(哪怕是 ''): koa 的 body setter 会把 content-length 改成 0,
+    // 而 HEAD 的响应头要跟 GET 一致, 得保留上游给的长度。
+    // 没人读的话 keep-alive 的 socket 不会还回连接池
+    proxy.res.resume();
   }
 };
 

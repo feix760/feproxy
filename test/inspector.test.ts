@@ -34,9 +34,10 @@ class InspectorWS {
     });
 
     client.on('message', msg => {
-      const { id, result, method, params } = JSON.parse(msg as string);
+      const { id, result, error, method, params } = JSON.parse(msg as string);
       if (id) {
-        client.emit(`callback_${id}`, result);
+        // 没实现的方法回的是协议 error, 没有 result
+        client.emit(`callback_${id}`, error ? { error } : result);
       }
       if (method) {
         client.emit(`method_${method}`, params);
@@ -101,15 +102,13 @@ describe('inspect test', () => {
 
     const ret = await Promise.all([
       inspector.sendMsg('Network.enable'),
-      inspector.sendMsg('Page.enable'),
       inspector.sendMsg('Page.getResourceTree'),
       inspector.sendMsg('Page.getResourceContent'),
     ]);
 
     expect(ret[0].result).toEqual(true);
-    expect(ret[1].result).toEqual(false);
-    expect(ret[2].frameTree).toBeTruthy();
-    expect(ret[3].content).toBeTruthy();
+    expect(ret[1].frameTree).toBeTruthy();
+    expect(ret[2].content).toBeTruthy();
 
     const url = util.getTestURL();
     const [ request ] = await Promise.all([
@@ -235,7 +234,7 @@ describe('inspect test', () => {
   });
 
   test('devtools static files', async () => {
-    const response = await fetch(`${util.getURL(app)}devtools/SupportedCSSProperties.js`);
+    const response = await fetch(`${util.getURL(app)}devtools/Images.js`);
 
     expect(response.status).toEqual(200);
     expect(await response.text()).toBeTruthy();
@@ -324,9 +323,21 @@ describe('inspect local upstream test', () => {
         setTimeout(() => res.end(), 100);
         return;
       }
+      if (req.url === '/slow') {
+        // 响应头先到, 响应体拖一会儿, 用来模拟「还在传输中」的请求
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.write('slow ');
+        setTimeout(() => res.end('body'), 300);
+        return;
+      }
       if (req.url === '/png') {
         res.writeHead(200, { 'content-type': 'image/png' });
         res.end(png);
+        return;
+      }
+      if (req.url === '/304' || req.url === '/204') {
+        res.writeHead(Number(req.url.slice(1)));
+        res.end();
         return;
       }
       res.setHeader('content-type', 'application/json');
@@ -391,6 +402,47 @@ describe('inspect local upstream test', () => {
     expect(loadingFinished.encodedDataLength).toEqual(0);
   });
 
+  test.each([ 304, 204 ])('loadingFinished immediately for %i', async status => {
+    // 这些状态码没有响应体, koa 直接 res.end(), 挂在 ctx.body 上的流会被 destroy ——
+    // 之前 proxy/http.ts 照样挂了流, 读它等不到 'end', 于是 devtools 一直收不到 loadingFinished
+    // (请求永远是 pending), streamResourceContent 也要干等满 STREAM_TIMEOUT
+    const [ request, responseReceived, loadingFinished, response ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      inspector.waitMethod('Network.responseReceived'),
+      inspector.waitMethod('Network.loadingFinished'),
+      proxyFetch(`/${status}`),
+    ]);
+
+    expect(response.status).toEqual(status);
+    expect(loadingFinished.encodedDataLength).toEqual(0);
+
+    // devtools 的 Time 列判的是 `duration = loadingFinished.timestamp - timing.requestTime > 0`,
+    // 算出 0 就显示 Pending。timing.requestTime 会覆盖 startTime, 所以它必须是请求开始的时刻,
+    // 给「响应头到达的时刻」的话没有响应体的响应就正好是 0
+    expect(responseReceived.response.timing.requestTime).toEqual(request.timestamp);
+    expect(loadingFinished.timestamp).toBeGreaterThan(request.timestamp);
+
+    // 已经结束了, 这里不该再等
+    const streamed = await inspector.sendMsg('Network.streamResourceContent', {
+      requestId: request.requestId,
+    });
+    expect(streamed).toEqual({ bufferedData: '' });
+  });
+
+  test('response timing has non zero latency', async () => {
+    // receiveHeadersEnd 是相对 requestTime 的毫秒偏移, devtools 的 latency 就靠它算,
+    // 之前写死 0, Time 列的副标题永远是 0ms
+    const [ request, responseReceived ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      inspector.waitMethod('Network.responseReceived'),
+      proxyFetch('/slow').then(res => res.text()),
+    ]);
+
+    const { timing } = responseReceived.response;
+    expect(timing.requestTime).toEqual(request.timestamp);
+    expect(timing.receiveHeadersEnd).toBeGreaterThan(0);
+  });
+
   test('loadingFinished for response without content-type', async () => {
     // status 规则的响应没有 content-type, 读响应体时不能因此抛错
     await app.config.update({
@@ -433,6 +485,63 @@ describe('inspect local upstream test', () => {
 
     expect(warn).toHaveBeenCalledWith('Parse devtool message error', expect.anything());
     warn.mockRestore();
+  });
+
+  test('streamResourceContent of an in-flight request', async () => {
+    const responsePromise = proxyFetch('/slow');
+    const request = await inspector.waitMethod('Network.requestWillBeSent');
+
+    // 响应体还没读完就来问内容, devtools 点开传输中的请求时就是这样;
+    // 这里不能回 error, 否则前端把失败的结果缓存起来, 那条请求的 Preview/Response 永远是空的
+    const streamed = inspector.sendMsg('Network.streamResourceContent', {
+      requestId: request.requestId,
+    });
+
+    expect(await (await responsePromise).text()).toEqual('slow body');
+
+    const ret = await streamed;
+    expect(Buffer.from(ret.bufferedData, 'base64').toString()).toEqual('slow body');
+  });
+
+  test('streamResourceContent of a finished request', async () => {
+    const [ request ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      inspector.waitMethod('Network.loadingFinished'),
+      proxyFetch('/').then(res => res.text()),
+    ]);
+
+    const ret = await inspector.sendMsg('Network.streamResourceContent', {
+      requestId: request.requestId,
+    });
+
+    expect(Buffer.from(ret.bufferedData, 'base64').toString()).toEqual(JSON.stringify({ ok: 1 }));
+  });
+
+  test('streamResourceContent of unknown request', async () => {
+    const ret = await inspector.sendMsg('Network.streamResourceContent', {
+      requestId: 'not-exists',
+    });
+
+    expect(ret.bufferedData).toEqual('');
+  });
+
+  test('unimplemented method returns protocol error', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    process.env.FEPROXY_CDP_DEBUG = '1';
+
+    // devtools 前端启动时会发几十条 feproxy 没实现的命令(Overlay/Debugger/Target...),
+    // 必须回协议 error, 回「成功但结果为空」会让前端直接抛 TypeError
+    const ret = await inspector.sendMsg('Overlay.enable');
+
+    delete process.env.FEPROXY_CDP_DEBUG;
+
+    expect(ret.error).toEqual({
+      code: -32601,
+      message: `'Overlay.enable' wasn't found`,
+    });
+    expect(log).toHaveBeenCalledWith('CDP >', 'Overlay.enable', 'MISSING');
+
+    log.mockRestore();
   });
 
   test('replayXHR of unknown request', async () => {

@@ -47,6 +47,7 @@ export const getConfig = async (ctx: ProxyContext) => {
   ctx.body = {
     ...config,
 
-    devtoolsURL: `/devtools/inspector.html?ws=${ip.address()}:${config.port}/ws`,
+    // feproxy 只用得上网络面板, panel 参数让 devtools 默认就停在 Network
+    devtoolsURL: `/devtools/inspector.html?ws=${ip.address()}:${config.port}/ws&panel=network`,
   };
 };

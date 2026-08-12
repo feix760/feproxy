@@ -15,13 +15,68 @@ interface RequestInfo {
   headers: Record<string, any>;
   postData: string;
   body: any;
+  /** 响应体是否已经读完 */
+  finished: boolean;
 }
+
+/** 响应体一直不结束(SSE/长轮询)时, streamResourceContent 最多等这么久 */
+const STREAM_TIMEOUT = 30000;
+
+const body2base64 = (body: any) => (
+  (Buffer.isBuffer(body) ? body : Buffer.from(body || '')).toString('base64')
+);
 
 export default (inspector: Inspector): InspectorModuleResult => {
   const requestInfoPool = new LRUCache<string, RequestInfo>({ max: 1000 });
 
-  const ctxParams = (ctx: ProxyContext) => ({
-    timestamp: inspector.timestamp(),
+  /** 在等响应体读完的 streamResourceContent 调用, 按 requestId 存 resolve 回调 */
+  const bodyWaiters = new Map<string, Set<(body: any) => void>>();
+
+  const finishBody = (requestId: string, body: any) => {
+    const info = requestInfoPool.get(requestId);
+    if (info) {
+      info.body = body;
+      info.finished = true;
+    }
+
+    const waiters = bodyWaiters.get(requestId);
+    if (waiters) {
+      bodyWaiters.delete(requestId);
+      waiters.forEach(resolve => resolve(body));
+    }
+  };
+
+  const waitBody = (requestId: string) => new Promise<any>(resolve => {
+    let timer: NodeJS.Timeout;
+
+    const done = (body: any) => {
+      clearTimeout(timer);
+      resolve(body);
+    };
+
+    timer = setTimeout(() => {
+      const waiters = bodyWaiters.get(requestId);
+      if (waiters) {
+        waiters.delete(done);
+        if (!waiters.size) {
+          bodyWaiters.delete(requestId);
+        }
+      }
+      resolve('');
+    }, STREAM_TIMEOUT);
+    // 别因为一条没结束的请求拖着进程不退出
+    timer.unref();
+
+    const waiters = bodyWaiters.get(requestId);
+    if (waiters) {
+      waiters.add(done);
+    } else {
+      bodyWaiters.set(requestId, new Set([ done ]));
+    }
+  });
+
+  const ctxParams = (ctx: ProxyContext, timestamp = inspector.timestamp()) => ({
+    timestamp,
     frameId: inspector.frame.id,
     loaderId: inspector.frame.loaderId,
     requestId: ctx[INSPECTOR].requestId,
@@ -32,6 +87,10 @@ export default (inspector: Inspector): InspectorModuleResult => {
     const requestId = inspector.nextId();
     ctx[INSPECTOR] = {
       requestId,
+      // 请求开始的时刻, responseReceived 的 timing.requestTime 要用它 —— devtools 拿
+      // timing.requestTime 覆盖 startTime, 给成「响应头到达的时刻」的话 duration 就只剩读响应体
+      // 的耗时, 没有响应体的响应(304/204)直接算出 0, Time 列判的是 `duration > 0`, 会显示 Pending
+      startTime: inspector.timestamp(),
     };
 
     let postData = '';
@@ -50,6 +109,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
       headers: ctx.headers,
       postData, // request body
       body: '', // response body
+      finished: false,
     });
 
     inspector.sendAll('Network.requestWillBeSent', {
@@ -64,7 +124,8 @@ export default (inspector: Inspector): InspectorModuleResult => {
         type: 'other',
       },
       type: 'Other',
-      ...ctxParams(ctx),
+      // POST 要先把请求体读完才发这条事件, 时间戳还是用请求真正开始的时刻
+      ...ctxParams(ctx, ctx[INSPECTOR].startTime),
     });
   };
 
@@ -82,6 +143,10 @@ export default (inspector: Inspector): InspectorModuleResult => {
       type,
     });
 
+    const { startTime } = ctx[INSPECTOR];
+    // timing 里除了 requestTime 是秒, 其余都是相对 requestTime 的毫秒偏移
+    const receiveHeadersEnd = (inspector.timestamp() - startTime) * 1000;
+
     inspector.sendAll('Network.responseReceived', {
       type,
       response: {
@@ -97,7 +162,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
         fromDiskCache: false,
         fromServiceWorker: false,
         timing: {
-          requestTime: inspector.timestamp(),
+          requestTime: startTime,
           proxyStart: -1,
           proxyEnd: -1,
           dnsStart: -1,
@@ -109,7 +174,8 @@ export default (inspector: Inspector): InspectorModuleResult => {
           workerStart: -1,
           sendStart: 0,
           sendEnd: 0,
-          receiveHeadersEnd: 0,
+          // devtools 的 latency 就是 responseReceivedTime - startTime, 之前写死 0, 一直是 0ms
+          receiveHeadersEnd,
         },
         requestHeaders: inspectorUtil.headersValueToString(req.headers),
         requestHeadersText: inspectorUtil.headers2text(req.headers),
@@ -122,15 +188,25 @@ export default (inspector: Inspector): InspectorModuleResult => {
   };
 
   const readResponseBody = async (ctx: ProxyContext) => {
-    let buffer = ctx.body,
-      totalLength = 0;
+    let body = ctx.body;
+    let totalLength = 0;
+
+    // 没有响应体(HEAD、204/205/304)的直接结束
+    if (!body) {
+      inspector.sendAll('Network.loadingFinished', {
+        encodedDataLength: totalLength,
+        ...ctxParams(ctx),
+      });
+      finishBody(ctx[INSPECTOR].requestId, '');
+      return;
+    }
 
     const resContentEncoding = ctx.res.getHeader('content-encoding') as string;
     // koa 3 的 response.get 直接返回 res.getHeader(), 没设置过是 undefined(koa 2 是 '')
     const isEventStream = `${ctx.response.get('content-type') || ''}`.includes('text/event-stream');
 
-    if (buffer instanceof Stream) {
-      const result = await inspectorUtil.readStream(buffer, {
+    if (body instanceof Stream) {
+      const result = await inspectorUtil.readStream(body, {
         onData(chunk) {
           if (isEventStream) {
             if (!resContentEncoding) {
@@ -142,24 +218,18 @@ export default (inspector: Inspector): InspectorModuleResult => {
           } else {
             inspector.sendAll('Network.dataReceived', {
               dataLength: chunk.length,
+              // 前端只在这个值不是 -1 时累加传输量, 不给就会算出 NaN(传输中的 Size 列会花掉)
+              encodedDataLength: chunk.length,
               ...ctxParams(ctx),
             });
           }
         },
       });
-      buffer = result.buffer;
+      body = result.buffer;
       totalLength = result.totalLength;
     }
 
-    if (!buffer) {
-      inspector.sendAll('Network.loadingFinished', {
-        encodedDataLength: totalLength,
-        ...ctxParams(ctx),
-      });
-      return;
-    }
-
-    let decoded: any = await inspectorUtil.decodeContent(buffer, resContentEncoding);
+    let decoded: any = await inspectorUtil.decodeContent(body, resContentEncoding);
 
     if (isEventStream && resContentEncoding) {
       inspector.sendAll('Network.eventSourceMessageReceived', {
@@ -177,10 +247,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
       decoded = inspectorUtil.buffer2String(decoded) || decoded;
     }
 
-    const info = requestInfoPool.get(ctx[INSPECTOR].requestId);
-    if (info) {
-      info.body = decoded;
-    }
+    finishBody(ctx[INSPECTOR].requestId, decoded);
   };
 
   inspector
@@ -224,6 +291,25 @@ export default (inspector: Inspector): InspectorModuleResult => {
         base64Encoded: false,
         body: '',
       };
+    },
+    // devtools 只对「还没传完」的请求用这个方法拿响应体(见前端 NetworkRequest.requestStreamingContent:
+    // finished 的走 getResponseBody, 否则走这里), 而且结果会被缓存 —— 回 error 的话那条请求的
+    // Preview/Response 就永远是空的。SSE 的消息视图也无条件走这条路。
+    // 我们没法按 chunk 给出解码后的内容(gzip 要整段解), 所以等响应体读完再一次性回。
+    'Network.streamResourceContent': function ({ params }: InspectorMessage) {
+      const { requestId } = params;
+      const info = requestInfoPool.get(requestId);
+
+      if (!info || info.finished) {
+        return {
+          bufferedData: body2base64(info && info.body),
+        };
+      }
+
+      return waitBody(requestId)
+        .then(body => ({
+          bufferedData: body2base64(body),
+        }));
     },
     'Network.setBlockedURLs': function ({ params }: InspectorMessage, client: Client) {
       client.setBlockedURLs(params.urls);

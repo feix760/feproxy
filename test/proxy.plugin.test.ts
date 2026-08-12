@@ -44,6 +44,16 @@ describe('proxy plugin branch test', () => {
         res.end('no-content-type');
         return;
       }
+      if (req.url === '/with-length') {
+        res.writeHead(200, { 'content-type': 'text/plain', 'content-length': '2' });
+        res.end(req.method === 'HEAD' ? undefined : 'ok');
+        return;
+      }
+      if (req.url === '/304') {
+        res.writeHead(304, { etag: 'W/"abc"' });
+        res.end();
+        return;
+      }
       res.setHeader('content-type', 'text/plain');
       res.end('ok');
     });
@@ -76,6 +86,23 @@ describe('proxy plugin branch test', () => {
     const response = await proxyFetch('/', { method: 'HEAD' });
 
     expect(response.status).toEqual(200);
+    expect(await response.text()).toEqual('');
+  });
+
+  test('keep upstream content-length for head request', async () => {
+    // HEAD 的响应头要和 GET 一致, 所以这条链路上不能设 ctx.body —— koa 的 body setter
+    // 会按 body 的长度改写 content-length, 设成 '' 的话这里就变成 0 了
+    const response = await proxyFetch('/with-length', { method: 'HEAD' });
+
+    expect(response.headers.get('content-length')).toEqual('2');
+    expect(await response.text()).toEqual('');
+  });
+
+  test('forward 304 without body', async () => {
+    const response = await proxyFetch('/304');
+
+    expect(response.status).toEqual(304);
+    expect(response.headers.get('etag')).toEqual('W/"abc"');
     expect(await response.text()).toEqual('');
   });
 

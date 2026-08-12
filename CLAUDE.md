@@ -78,6 +78,7 @@ MITM 之后请求行只剩 `/path`，`ctx.url` 被重写为 getter，结合 `soc
 - 规则来自 `config.getRules(inspector.getBlockedURLs())`：devtools blockedURLs 转成的 `status` 404 规则**排在前面**，然后是用户 project 规则；逐条对 `ctx.url` 做正则匹配，同一 type 只取第一条命中（所以 blockedURLs 的 404 会压过用户的 status 规则）。
 - 之后再把所有插件自带的默认 `match` 兜底进来，按 `priority` 降序组成类似 Koa 的 `next()` 链。
 - `http`/`websocket`（priority 10）是终结插件，不调 `next()`；`header`(50) 在 `next()` 之后改响应头；`host`(50) 通过改写链上 `http` 插件的 param 生效；`delay`(80)、`status`(30)、`file`(20)。
+- `http` 转发响应体时挂的是一个 PassThrough（规避 keep-alive 的 "socket hang up"），但**没有响应体的响应（HEAD 和 `statuses.empty`：204/205/304）一定不能挂 body**：koa 对这些状态码直接 `ctx.body = null` + `res.end()`，而 body 的 setter 早就注册了 `onFinish(res, destroy)`，那个流会被 destroy —— 只有 `'close'` 没有 `'end'`，抓包侧 `readStream` 的 promise 永远不 settle，devtools 收不到 `loadingFinished`（请求一直是 pending，没有耗时和大小），`Network.streamResourceContent` 还要干等满 `STREAM_TIMEOUT`。这一支也**不能退而设 `ctx.body = ''`**，body setter 会按长度改写 `content-length`，HEAD 的响应头就和 GET 不一致了（要保留上游给的长度）；只需要 `proxy.res.resume()` 把上游响应消费掉，否则 keep-alive 的 socket 不还回连接池。
 - 规则 param 里的字符串支持 `$1`、`$2` 反向引用 match 正则的捕获组（见 `matchReg`）。
 - 新增插件 = 在 `src/proxy/` 加文件 + 在 `proxyPlugins.ts` 注册（决定 priority/默认 match）+ 在前端 `component/Project.tsx` 的 `to` 串编解码里加分支。
 
@@ -85,9 +86,28 @@ MITM 之后请求行只剩 `/path`，`ctx.url` 被重写为 getter，结合 `soc
 
 自己实现了 Chrome DevTools Protocol 的一个子集：`Inspector` 持有多个 `Client`（每个连上 `/ws` 的 devtools 一个），`network`/`page`/`websocket` 三个模块注册 `methods`（响应 devtools 请求，如 `Network.getResponseBody`、`Network.setBlockedURLs`、`Network.replayXHR`）并通过 `sendAll` 主动推事件（`requestWillBeSent`/`responseReceived`/`dataReceived`/`webSocketFrame*` 等）。响应体在 LRU 池里按 requestId 缓存，SSE 走 `eventSourceMessageReceived`。
 
+**没实现的方法必须回协议 error**（`{ error: { code: -32601, message: "'X' wasn't found" } }`，文案和 Chrome 一致）。前端启动时会发 40+ 条命令（`Overlay.*`/`Debugger.*`/`Target.*`/`Page.getNavigationHistory`…），只有 `Network.enable`、`Network.getResponseBody`、`Network.streamResourceContent`、`Network.setBlockedURLs`、`Network.replayXHR`、`Page.getResourceTree`、`Page.getResourceContent` 是实现了的；早期版本对未知方法回「成功但结果为空」，新版前端拿到后会直接 deref 出 `TypeError` 把界面打挂，收到 error 才会走降级分支。调试时开 `FEPROXY_CDP_DEBUG=1` 可以打印每条命令及其是否 MISSING。
+
+**`Network.streamResourceContent` 是个例外，它绝对不能回 error。** 前端 `NetworkRequest.requestStreamingContent` 按请求是否传完二选一：传完了走 `getResponseBody`，还在传就走 `streamResourceContent`，**而且结果会被缓存**——回 error 的话那条请求的 Preview/Response 永远是空的（SSE 的消息视图也无条件走这条）。我们没法按 chunk 给出解码后的内容（gzip 要整段解），所以 `bodyWaiters` 挂一个 waiter 等响应体读完再一次性回，最多等 `STREAM_TIMEOUT`（30s，timer 是 unref 的，不拖着进程不退出）。同理 `Network.dataReceived` 必须带 `encodedDataLength`，前端只在它不等于 -1 时累加传输量，不给会算出 NaN 把 Size 列打花。
+
+**`responseReceived` 的 `timing.requestTime` 必须是请求开始的时刻**（`ctx[INSPECTOR].startTime`，在 `requestWillBeSent` 里记下来），不能是「响应头到达的时刻」：前端的 `set timing` 会拿它**覆盖** `startTime`，而 Time 列判的是 `duration = loadingFinished.timestamp - startTime > 0`，否则显示 `Pending`——给成响应头时刻的话 duration 就只剩读响应体的耗时，没有响应体的响应（304/204）正好算出 0，那一列永远是 Pending。`timing` 里除 `requestTime` 是秒，其余都是相对它的**毫秒**偏移，`receiveHeadersEnd` 就是 latency 副标题的来源（写死 0 的话永远显示 0ms）。另外 `Inspector.timestamp()` 用的是 `performance.now()` 而不是 `Date.now()`——后者只有 1ms 精度，本机请求经常整个跑完还在同一毫秒，duration 又是 0。
+
 `config.inspect`（默认 `true`）是抓包总开关：为假时 `middleware/inspect`、`middleware/wsInspect` 直接 `next()`，不 emit 任何事件（也就不会读 POST body / 响应体），只做转发，devtools 界面照常打开但看不到请求。可通过 `--no-inspect`、admin 设置面板或 `/setConfig` 切换（`inspect` 和 `projects/https/ignoreCertError` 一起持久化到 `config.json`）。
 
-devtools 前端来自 `chrome-devtools-frontend` 包，只有 `src/frontend/asset/devtools/` 下那 3 个文件是本地覆盖版（见 `controller/devtools.ts` 注释里的下载地址）。
+#### devtools 前端（`@chrome-devtools/inspector` + `src/controller/devtools.ts`）
+
+官方 `chrome-devtools-frontend` npm 包只发 TS 源码（要 depot_tools + gn/ninja 才编得出来），appspot 上那套按 revision 取文件的地址早就 404 了，所以用 `@chrome-devtools/inspector`——上游 devtools-frontend 的每周构建产物（未打补丁，不是 chii 那种 fork）。包内容就是 `inspector.html` + 一个 `chunk-*.js`/`chunk-*.css` + `Images.js` + `locales/`。
+
+四个坑：
+
+- **版本必须锁死**（`-E` 精确装）。`1.20252311.0` 起的构建产物里混进了 `import * as x from "node:worker_threads"`，浏览器解析不了，整个界面白屏；目前能用的最新版是 **`1.20251611.0`**。`test/site.test.ts` 的 `devtools bundle has no bare node import` 就是这条的哨兵，升级依赖后它先红，不用等打开界面才发现。
+- `inspector.html` 会被 `controller/devtools.ts` 改写后再返回：往 `<body>` 后插一个 `feproxy-entry.js`（普通 script，解析时同步执行，排在 module chunk 之前），另外给 CSP 的 `connect-src` 补上 `ws: wss:`（当前版本没有这条指令，是给升级兜底——有的版本只放开 `ws://127.0.0.1:*`，手机连局域网 IP 就连不上）。html 自带 `script-src 'self'`，所以注入的只能是外链脚本。
+- devtools 的设置就是 localStorage 里以 setting 名为 key 的 JSON 值。注入 `feproxy-entry.js` 的唯一目的就是在前端启动前预置 `screencast-enabled=false`（否则那块永远空白的截屏面板占掉大半窗口）和 `disable-locale-info-bar=true`。
+- **包里没有 worker 入口**。主 chunk 里写死了 `new URL('../../entrypoints/formatter_worker/formatter_worker-entrypoint.js', import.meta.url)`，相对 `/devtools/chunk-*.js` 算下来落在**站点根**上，但包只发了主 chunk。而 devtools 的 `WorkerWrapper` 在 worker 加载失败时只 `console.error`，既不 reject 也不超时，`postMessage` 就挂在一个永远不 settle 的 promise 上——`SourceFrame` 对压缩过的内容（`isMinified`：有一行超过 500 字符）会自动 pretty print，于是 `await setPretty(true)` 卡死、`setContent` 再也不执行，**表现是点开请求后 Response 面板只剩一个空编辑器，没报错也没异常**（Preview 走 iframe，所以看着是好的，只有 Response 是空的）。所以自己实现了一份最小的 worker（`asset/devtools/entrypoints/formatter_worker/`）：JSON 真的重排（只动空白，不用 `JSON.parse`+`stringify`——那会改写数字精度和指数写法，抓包看到的内容必须和实际响应一致），其余类型原样返回；`format` 的返回值必须带 `mapping: { original, formatted }`（两个递增的 offset 数组，devtools 靠它在原始/格式化视图间换算位置）。它的 url 在站点根上，所以 `router.ts` 里除了 `/devtools/(.+)` 还配了一条 `^/(entrypoints/.+)$`，都由 `controller/devtools.ts` 的 static 处理。
+
+只用得到网络面板，所以 `controller/site.ts` 下发的 `devtoolsURL` 带 `?panel=network` 让它默认停在 Network。`src/frontend/asset/devtools/` 是本地覆盖目录（优先于包内同名文件），现在放注入脚本和 formatter worker。
+
+**管理界面入口**（`component/App.tsx` 的 `.open-settings`）是 devtools iframe 的**同级兄弟节点**，靠 `position: fixed` + `z-index` 浮在 iframe 上面，点击直接开设置层，不用 postMessage。位置在右下角（网络面板底部汇总栏的空白区），颜色写死不跟 devtools 主题走——早期版本是右上角一个无文字的蓝色圆环，正好压在新版 devtools 的齿轮图标旁边，根本认不出来。
 
 ### 7. 代理账号验证（`src/util/proxyAuth.ts`）
 

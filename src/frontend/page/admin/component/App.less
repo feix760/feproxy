@@ -2,18 +2,25 @@ body {
   overflow-y: hidden;
 }
 
+// 浮在 devtools iframe 右下角: 那儿是网络面板底部汇总栏的空白区(文字左对齐), 不会挡住控件。
+// devtools 跟随系统深浅色, 所以颜色写死, 两种主题下都得看得见。
 .open-settings {
   position: fixed;
-  right: 45px;
-  top: 30px;
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
-  border: 5px solid #3B88FC;
-  box-shadow: 0 0 2px #3B88FC;
-  border-radius: 50%;
+  right: 66px;
+  top: 3px;
+  z-index: 1;
+  margin: 0;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 4px;
+  font: 500 12px/1.2 system-ui, sans-serif;
+  color: #fff;
+  background: #1A73E8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   cursor: pointer;
-  opacity: 0.8;
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .dialog {
@@ -23,6 +30,7 @@ body {
   left: 0;
   right: 0;
   background: rgba(0, 0, 0, 0.5);
+  z-index: 2;
   &-content {
     position: absolute;
     top: 10px;

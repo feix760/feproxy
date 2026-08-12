@@ -39,11 +39,7 @@ class Inspector extends EventEmitter {
 
     this.app = app;
     this.clients = new Set();
-    this.methods = {
-      default: () => ({
-        result: false,
-      }),
-    };
+    this.methods = {};
 
     this.frame = {
       contextId: 1,
@@ -101,7 +97,25 @@ class Inspector extends EventEmitter {
   async handleMessage({ msg, client }: { msg: InspectorMessage; client: Client }) {
     const { method, id } = msg;
 
-    const handler = this.methods[method] || this.methods.default;
+    if (process.env.FEPROXY_CDP_DEBUG) {
+      console.log('CDP >', method, this.methods[method] ? '' : 'MISSING');
+    }
+
+    const handler = this.methods[method];
+    // 没实现的方法要回协议 error, 不能回空 result:
+    // devtools 前端启动时会发几十条命令(Debugger/DOM/Overlay/Target...),
+    // 拿到「成功但结果为空」会直接 deref 出 TypeError, 收到 error 才会走降级分支。
+    // 错误文案和 Chrome 保持一致。
+    if (!handler) {
+      client.send({
+        id,
+        error: {
+          code: -32601,
+          message: `'${method}' wasn't found`,
+        },
+      });
+      return;
+    }
 
     let result = handler(msg, client);
 
@@ -131,9 +145,14 @@ class Inspector extends EventEmitter {
     return `${++this[REQUEST_ID]}`;
   }
 
+  /**
+   * CDP 里的 timestamp 是「单调时钟的秒数」, 起点无所谓, 只有差值有意义。
+   * 用 performance.now() 而不是 Date.now(): 后者只有 1ms 精度, 本机的请求经常整个跑完还在同一毫秒,
+   * 算出来 duration 正好是 0, devtools 的 Time 列判的是 `duration > 0`, 会一直显示 Pending。
+   */
   timestamp() {
-    this._timestamp = this._timestamp || Date.now();
-    return (Date.now() - this._timestamp) / 1000;
+    this._timestamp = this._timestamp || performance.now();
+    return (performance.now() - this._timestamp) / 1000;
   }
 }
 

@@ -31,58 +31,57 @@ export default function App() {
     }));
   }, [ dispatch ]);
 
-  return (
-    <div>
-      <iframe className="devtools"
-        src={config.devtoolsURL}
-        frameBorder="0"
-        style={{ width: size.width + 'px', height: size.height + 'px' }}
-      ></iframe>
-      <div className="open-settings" onClick={onOpenSettings}></div>
-      <div className="dialog" style={{ display: showSettings ? '' : 'none' }}>
-        <div className="dialog-content">
-          <div className="close-button el-icon-close" onClick={onCloseSettings}></div>
-          <div className="box">
-            <h3 className="box-header">
-              FEProxy
-            </h3>
-            <div className="box-content">
-              <div className="settings-item">
-                <input
-                  className="enable"
-                  type="checkbox"
-                  checked={ config.https || false }
-                  onChange={ setSwitch('https') }
-                />
-                https
-              </div>
-              {
-                config.https && (
-                  <div className="settings-item">
-                    <input
-                      className="enable"
-                      type="checkbox"
-                      checked={ config.ignoreCertError || false }
-                      onChange={ setSwitch('ignoreCertError') }
-                    />
-                    ignore certificate error
-                  </div>
-                )
-              }
-              <div className="settings-item">
-                <input
-                  className="enable"
-                  type="checkbox"
-                  checked={ config.inspect || false }
-                  onChange={ setSwitch('inspect') }
-                />
-                inspect
-              </div>
+  return <>
+    <iframe className="devtools"
+      src={config.devtoolsURL}
+      frameBorder="0"
+      style={{ width: size.width + 'px', height: size.height + 'px' }}
+    ></iframe>
+    {/* 和 devtools iframe 同级, 靠 z-index 浮在它上面 */}
+    <div className="open-settings" onClick={onOpenSettings}>⚙ FeProxy</div>
+    <div className="dialog" style={{ display: showSettings ? '' : 'none' }}>
+      <div className="dialog-content">
+        <div className="close-button el-icon-close" onClick={onCloseSettings}></div>
+        <div className="box">
+          <h3 className="box-header">
+            FEProxy
+          </h3>
+          <div className="box-content">
+            <div className="settings-item">
+              <input
+                className="enable"
+                type="checkbox"
+                checked={ config.https || false }
+                onChange={ setSwitch('https') }
+              />
+              https
+            </div>
+            {
+              config.https && (
+                <div className="settings-item">
+                  <input
+                    className="enable"
+                    type="checkbox"
+                    checked={ config.ignoreCertError || false }
+                    onChange={ setSwitch('ignoreCertError') }
+                  />
+                  ignore certificate error
+                </div>
+              )
+            }
+            <div className="settings-item">
+              <input
+                className="enable"
+                type="checkbox"
+                checked={ config.inspect || false }
+                onChange={ setSwitch('inspect') }
+              />
+              inspect
             </div>
           </div>
-          <Project />
         </div>
+        <Project />
       </div>
     </div>
-  );
+  </>;
 }
