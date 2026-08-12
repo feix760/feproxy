@@ -126,7 +126,8 @@ export default (inspector: Inspector): InspectorModuleResult => {
       totalLength = 0;
 
     const resContentEncoding = ctx.res.getHeader('content-encoding') as string;
-    const isEventStream = ctx.response.get('content-type').includes('text/event-stream');
+    // koa 3 的 response.get 直接返回 res.getHeader(), 没设置过是 undefined(koa 2 是 '')
+    const isEventStream = `${ctx.response.get('content-type') || ''}`.includes('text/event-stream');
 
     if (buffer instanceof Stream) {
       const result = await inspectorUtil.readStream(buffer, {

@@ -93,6 +93,61 @@ describe('site router test', () => {
     expect(countRule()).toEqual(oldLen - 1);
   });
 
+  test('open and close settings', async () => {
+    const dialog = container.querySelector('.dialog') as HTMLElement;
+    expect(dialog.style.display).toEqual('none');
+
+    await act(async () => {
+      click('.open-settings');
+    });
+    expect(dialog.style.display).toEqual('');
+
+    act(() => {
+      click('.close-button');
+    });
+    expect(dialog.style.display).toEqual('none');
+  });
+
+  test('resize devtools iframe', () => {
+    const iframe = container.querySelector('.devtools') as HTMLElement;
+
+    act(() => {
+      (window as any).innerWidth = 1000;
+      (window as any).innerHeight = 800;
+      fireEvent(window, new Event('resize'));
+    });
+
+    expect(iframe.style.width).toEqual('1000px');
+    expect(iframe.style.height).toEqual('800px');
+  });
+
+  test('toggle settings switch', async () => {
+    // https 打开时才有 ignoreCertError 开关
+    await act(() => page.store.dispatch(setConfig({ https: true })));
+
+    const switches = container.querySelectorAll('.settings-item .enable');
+    expect(switches.length).toEqual(3);
+
+    await act(async () => {
+      fireEvent.click(switches[1]);
+    });
+    expect(page.store.getState().config.ignoreCertError).toEqual(true);
+
+    await act(async () => {
+      fireEvent.click(container.querySelectorAll('.settings-item .enable')[2]);
+    });
+    expect(page.store.getState().config.inspect).toEqual(false);
+
+    await act(async () => {
+      fireEvent.click(container.querySelectorAll('.settings-item .enable')[0]);
+    });
+    expect(page.store.getState().config.https).toEqual(false);
+    // 关掉 https 后 ignoreCertError 开关消失
+    expect(container.querySelectorAll('.settings-item .enable').length).toEqual(2);
+
+    await act(() => page.store.dispatch(setConfig({ inspect: true })));
+  });
+
   test('set config', async () => {
     await act(() => page.store.dispatch(setConfig({
       https: false,

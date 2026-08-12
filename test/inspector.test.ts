@@ -1,3 +1,4 @@
+import http from 'http';
 import getPort from 'get-port';
 import fetch from 'node-fetch';
 import WebSocket from 'ws';
@@ -295,6 +296,154 @@ describe('inspect test', () => {
   });
 });
 
+describe('inspect local upstream test', () => {
+  let app: FeproxyApp;
+  let inspector: InspectorWS;
+  let upstream: http.Server;
+  let upstreamURL: string;
+
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8AAAwAB/AF+3ksHAAAAAElFTkSuQmCC',
+    'base64',
+  );
+
+  const proxyFetch = (path: string, options = {}) => fetch(`${upstreamURL}${path}`, {
+    agent: util.getProxyAgent(app),
+    ...options,
+  });
+
+  beforeAll(async () => {
+    app = await util.startApp();
+
+    const port = await getPort();
+    upstreamURL = `http://127.0.0.1:${port}`;
+    upstream = http.createServer((req, res) => {
+      if (req.url === '/sse') {
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.write('data: sse message\n\n');
+        setTimeout(() => res.end(), 100);
+        return;
+      }
+      if (req.url === '/png') {
+        res.writeHead(200, { 'content-type': 'image/png' });
+        res.end(png);
+        return;
+      }
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ ok: 1 }));
+    });
+    await new Promise<void>(resolve => upstream.listen(port, resolve));
+
+    inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+    await inspector.open();
+  });
+
+  afterAll(async () => {
+    inspector.close();
+    upstream.close();
+    await util.stopApp(app);
+  });
+
+  test('read post body', async () => {
+    const postData = JSON.stringify({ a: 1 });
+    const [ request ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      proxyFetch('/', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: postData,
+      }).then(res => res.text()),
+    ]);
+
+    expect(request.request.postData).toEqual(postData);
+  });
+
+  test('send eventSourceMessageReceived for sse', async () => {
+    const [ message ] = await Promise.all([
+      inspector.waitMethod('Network.eventSourceMessageReceived'),
+      proxyFetch('/sse').then(res => res.text()),
+    ]);
+
+    expect(message.data).toContain('sse message');
+  });
+
+  test('response body of image is base64 encoded', async () => {
+    const [ request ] = await Promise.all([
+      inspector.waitMethod('Network.requestWillBeSent'),
+      inspector.waitMethod('Network.loadingFinished'),
+      proxyFetch('/png').then(res => res.buffer()),
+    ]);
+
+    const response = await inspector.sendMsg('Network.getResponseBody', {
+      requestId: request.requestId,
+    });
+
+    expect(response.base64Encoded).toEqual(true);
+    expect(response.body).toEqual(png.toString('base64'));
+  });
+
+  test('loadingFinished without response body', async () => {
+    const [ loadingFinished ] = await Promise.all([
+      inspector.waitMethod('Network.loadingFinished'),
+      proxyFetch('/', { method: 'HEAD' }),
+    ]);
+
+    expect(loadingFinished.encodedDataLength).toEqual(0);
+  });
+
+  test('loadingFinished for response without content-type', async () => {
+    // status 规则的响应没有 content-type, 读响应体时不能因此抛错
+    await app.config.update({
+      projects: [ {
+        name: '',
+        enable: true,
+        rules: [ {
+          enable: true,
+          match: '127\\.0\\.0\\.1',
+          type: 'status',
+          param: { status: 404 },
+        } ],
+      } ],
+    });
+
+    const [ loadingFinished, response ] = await Promise.all([
+      inspector.waitMethod('Network.loadingFinished'),
+      proxyFetch('/'),
+    ]);
+
+    expect(response.status).toEqual(404);
+    expect(loadingFinished.encodedDataLength).toEqual(0);
+
+    await app.config.update({ projects: [] });
+  });
+
+  test('empty response body of unknown request', async () => {
+    const response = await inspector.sendMsg('Network.getResponseBody', {
+      requestId: 'not-exists',
+    });
+
+    expect(response).toEqual({ base64Encoded: false, body: '' });
+  });
+
+  test('warn broken devtools message', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    inspector.client.send('not a json message');
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(warn).toHaveBeenCalledWith('Parse devtool message error', expect.anything());
+    warn.mockRestore();
+  });
+
+  test('replayXHR of unknown request', async () => {
+    const response = await inspector.sendMsg('Network.replayXHR', {
+      requestId: 'not-exists',
+    });
+
+    expect(response.result).toEqual(false);
+  });
+});
+
 describe('inspect disabled test', () => {
   let app: FeproxyApp;
   beforeAll(async () => {
@@ -327,6 +476,50 @@ describe('inspect disabled test', () => {
 
     expect(received).toEqual(false);
 
+    inspector.close();
+  });
+
+  test('should not send websocket events when inspect is disabled', async () => {
+    const inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+
+    await inspector.open();
+
+    let received = false;
+    inspector.client.on('method_Network.webSocketCreated', () => {
+      received = true;
+    });
+
+    const port = await getPort();
+    const wsServer = new WebSocket.Server({ port });
+    wsServer.on('connection', socket => {
+      socket.on('message', () => socket.send('server msg'));
+    });
+
+    let client: WebSocket;
+    const msg = await new Promise<any>((resolve, reject) => {
+      client = new WebSocket(`ws://127.0.0.1:${port}/`, {
+        agent: new ProxyAgent({
+          proxy: {
+            host: '127.0.0.1',
+            port: app.config.port,
+          },
+        }),
+      });
+
+      client.on('open', () => client.send('client msg'));
+      client.on('message', resolve);
+      client.on('error', reject);
+    });
+
+    // 关闭抓包后 ws 依然可以正常转发
+    expect(msg.toString()).toEqual('server msg');
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    expect(received).toEqual(false);
+
+    client.close();
+    wsServer.close();
     inspector.close();
   });
 });
