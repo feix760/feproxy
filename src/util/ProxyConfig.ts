@@ -19,6 +19,8 @@ export interface ConfigData {
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
+  /** 是否开启抓包 */
+  inspect: boolean;
   auth?: AuthConfig;
   projects: Project[];
   [key: string]: any;
@@ -31,6 +33,7 @@ class ProxyConfig {
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
+  inspect: boolean;
   auth?: AuthConfig;
   projects: Project[];
   [key: string]: any;
@@ -70,10 +73,22 @@ class ProxyConfig {
 
     this.updateRules();
 
+    // 写文件前先读取已有配置, 保留其它字段, 避免覆盖丢失
+    let rcConfig: Record<string, any> = {};
+    try {
+      if (fs.existsSync(this.RC_PATH)) {
+        rcConfig = await fs.readJson(this.RC_PATH);
+      }
+    } catch (err) {
+      console.warn('Read config error', err);
+    }
+
     await fs.outputJson(this.RC_PATH, {
+      ...rcConfig,
       projects: this.projects,
       https: this.https,
       ignoreCertError: this.ignoreCertError,
+      inspect: this.inspect,
     });
   }
 

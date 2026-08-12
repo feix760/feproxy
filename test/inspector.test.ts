@@ -317,3 +317,41 @@ describe('inspect test', () => {
     inspector.close();
   });
 });
+
+describe('inspect disabled test', () => {
+  let app: FeproxyApp;
+  beforeAll(async () => {
+    app = await util.startApp({ inspect: false });
+  });
+
+  afterAll(async () => {
+    await util.stopApp(app);
+  });
+
+  test('should not send events when inspect is disabled', async () => {
+    const inspector = new InspectorWS(`ws://127.0.0.1:${app.config.port}/ws`);
+
+    await inspector.open();
+
+    let received = false;
+    inspector.client.on('method_Network.requestWillBeSent', () => {
+      received = true;
+    });
+
+    // 关闭抓包后请求依然可以正常转发
+    const response = await rp({
+      url: util.getTestURL(),
+      strictSSL: false,
+      proxy: util.getURL(app),
+    });
+
+    expect(response).toBeTruthy();
+
+    // 等一会儿, 确认没有事件推送到 devtools
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    expect(received).toEqual(false);
+
+    inspector.close();
+  });
+});

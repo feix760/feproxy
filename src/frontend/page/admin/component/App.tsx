@@ -69,6 +69,15 @@ export default function App() {
                   </div>
                 )
               }
+              <div className="settings-item">
+                <input
+                  className="enable"
+                  type="checkbox"
+                  checked={ config.inspect || false }
+                  onChange={ setSwitch('inspect') }
+                />
+                inspect
+              </div>
             </div>
           </div>
           <Project />

@@ -77,6 +77,8 @@ koa-router 用正则匹配协议前缀区分「被代理的流量」和「feprox
 
 自己实现了 Chrome DevTools Protocol 的一个子集：`Inspector` 持有多个 `Client`（每个连上 `/ws` 的 devtools 一个），`network`/`page`/`websocket` 三个模块注册 `methods`（响应 devtools 请求，如 `Network.getResponseBody`、`Network.setBlockedURLs`、`Network.replayXHR`）并通过 `sendAll` 主动推事件（`requestWillBeSent`/`responseReceived`/`dataReceived`/`webSocketFrame*` 等）。响应体在 LRU 池里按 requestId 缓存，SSE 走 `eventSourceMessageReceived`。
 
+`config.inspect`（默认 `true`）是抓包总开关：为假时 `middleware/inspect`、`middleware/wsInspect` 直接 `next()`，不 emit 任何事件（也就不会读 POST body / 响应体），只做转发，devtools 界面照常打开但看不到请求。可通过 `--no-inspect`、admin 设置面板或 `/setConfig` 切换（`inspect` 和 `projects/https/ignoreCertError` 一起持久化到 `config.json`）。
+
 devtools 前端来自 `chrome-devtools-frontend` 包，只有 `src/frontend/asset/devtools/` 下那 3 个文件是本地覆盖版（见 `controller/devtools.ts` 注释里的下载地址）。
 
 ### 7. 代理账号验证（`src/util/proxyAuth.ts`）
@@ -91,7 +93,7 @@ Basic 代理认证，账号**写死**在 `defaultConfig.ts` 的 `auth: { enable,
 
 ### 8. 配置（`src/util/ProxyConfig.ts`）与 CLI（`src/cli.ts`）
 
-CLI 用 yargs 把命令行参数按 `defaultConfig.ts` 的字段一一映射后传给 `createApp()`：`--port`、`--hostname`、`--config`（对应 `RC_DIR`）、`--https`（`--no-https` 关闭）、`--ignore-cert-error`、`--auth`（`--no-auth` 关闭）、`--username`、`--password`；短别名只有 `-p/--port`、`-c/--config`、`-v/--version`，`version/help` 交给 yargs 内置处理（自动打印并退出）。新增配置字段时记得同步补 CLI 参数。
+CLI 用 yargs 把命令行参数按 `defaultConfig.ts` 的字段一一映射后传给 `createApp()`：`--port`、`--hostname`、`--config`（对应 `RC_DIR`）、`--https`（`--no-https` 关闭）、`--ignore-cert-error`、`--inspect`（`--no-inspect` 关闭）、`--auth`（`--no-auth` 关闭）、`--username`、`--password`；短别名只有 `-p/--port`、`-c/--config`、`-v/--version`，`version/help` 交给 yargs 内置处理（自动打印并退出）。新增配置字段时记得同步补 CLI 参数。
 
 各选项的 `default` 直接取自 `defaultConfig`，所以 argv 里恒有值。
 

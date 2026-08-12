@@ -1,7 +1,5 @@
 import type { AuthConfig } from './ProxyConfig';
 
-export const AUTHENTICATE = 'Basic realm="feproxy"';
-
 /** 是否需要做代理账号验证 */
 export const needAuth = (auth?: AuthConfig) => {
   return !!(auth && auth.enable && auth.username);
@@ -40,6 +38,8 @@ export const getRawProxyAuthorization = (raw: string) => {
   const match = /\r\nproxy-authorization:[ \t]*([^\r\n]*)/i.exec(raw);
   return match ? match[1] : '';
 };
+
+export const AUTHENTICATE = 'Basic realm="feproxy"';
 
 /** 407 响应报文, 用于 CONNECT 阶段直接写回 socket */
 export const getProxyAuthRequiredRaw = () => {

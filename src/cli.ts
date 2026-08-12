@@ -33,6 +33,11 @@ export function main() {
       describe: 'Ignore upstream certificate error',
       default: defaultConfig.ignoreCertError,
     })
+    .option('inspect', {
+      type: 'boolean',
+      describe: 'Inspect request in devtools, use --no-inspect to disable',
+      default: defaultConfig.inspect,
+    })
     .option('auth', {
       type: 'boolean',
       describe: 'Enable proxy basic authentication, use --no-auth to disable',
@@ -56,6 +61,7 @@ export function main() {
     .help('help')
     .example('feproxy -p 8888', 'Start proxy server on port 8888')
     .example('feproxy --no-https', 'Do not decrypt https request')
+    .example('feproxy --no-inspect', 'Disable request inspecting')
     .example('feproxy --no-auth', 'Disable proxy authentication')
     .argv as Record<string, any>;
 
@@ -66,6 +72,7 @@ export function main() {
     RC_DIR: argv.config,
     https: argv.https,
     ignoreCertError: argv.ignoreCertError,
+    inspect: argv.inspect,
     auth: {
       enable: argv.auth,
       username: argv.username,

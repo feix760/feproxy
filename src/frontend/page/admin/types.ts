@@ -29,6 +29,7 @@ export interface ConfigState {
   projects: Project[];
   https?: boolean;
   ignoreCertError?: boolean;
+  inspect?: boolean;
   devtoolsURL?: string;
   [key: string]: any;
 }

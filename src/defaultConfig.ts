@@ -7,6 +7,9 @@ const defaultConfig: ConfigData = {
 
   ignoreCertError: false,
 
+  // 是否开启抓包(向 devtools 推送请求/响应事件), 关闭后仅做转发
+  inspect: true,
+
   RC_DIR: path.join(os.homedir(), '.feproxy'),
 
   hostname: 'feproxy.org',
