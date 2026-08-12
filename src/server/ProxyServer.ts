@@ -39,7 +39,8 @@ class ProxyServer {
   onceData(socket: net.Socket, cb: (buffer: Buffer) => Promise<void>) {
     return new Promise<void>((resolve, reject) => {
       socket.once('error', reject);
-      socket.once('data', buffer => {
+      // 没设过 encoding, data 事件必然是 Buffer
+      socket.once('data', (buffer: Buffer) => {
         socket.removeListener('error', reject);
         // `socekt.pause|unshift` should be called in data event handler, could not has `await` etc.
         // otherwise will cause bug

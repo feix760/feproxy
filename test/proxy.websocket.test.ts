@@ -26,7 +26,7 @@ describe('proxy websocket test', () => {
     });
 
     let client: WebSocket;
-    const msg = await new Promise<any>((resolve, reject) => {
+    const { msg, isBinary } = await new Promise<any>((resolve, reject) => {
       client = new WebSocket(`ws://127.0.0.1:${port}/`, {
         agent: new ProxyAgent({
           proxy: {
@@ -40,8 +40,9 @@ describe('proxy websocket test', () => {
         client.send('hello');
       });
 
-      client.on('message', message => {
-        resolve(message);
+      // ws 8 起 message 固定是 Buffer, 文本帧靠 isBinary 区分
+      client.on('message', (message, binary) => {
+        resolve({ msg: message, isBinary: binary });
       });
 
       client.on('error', reject);
@@ -50,6 +51,8 @@ describe('proxy websocket test', () => {
     client.close();
     wss.close();
 
-    expect(msg).toEqual(serverMsg);
+    expect(msg.toString()).toEqual(serverMsg);
+    // 转发不能把文本帧变成二进制帧
+    expect(isBinary).toEqual(false);
   });
 });

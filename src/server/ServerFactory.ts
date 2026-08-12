@@ -1,7 +1,7 @@
 import http from 'http';
 import https from 'https';
 import os from 'os';
-import LRU from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import { HttpsAgent } from '../util/agent';
 import type { FeproxyApp } from '../types';
 import * as ca from './ca';
@@ -41,7 +41,7 @@ class ServerFactory {
   untrustRootCA: RootCA;
   trustedRootCA: RootCA;
   agent: HttpsAgent;
-  servers: LRU<string, AnyServer | Promise<AnyServer>>;
+  servers: LRUCache<string, AnyServer | Promise<AnyServer>>;
 
   constructor(app: FeproxyApp) {
     this.app = app;
@@ -54,7 +54,7 @@ class ServerFactory {
       timeout: 10000,
     });
 
-    this.servers = new LRU(1000);
+    this.servers = new LRUCache({ max: 1000 });
   }
 
   async getHTTPServer() {
@@ -88,7 +88,7 @@ class ServerFactory {
         return realServer;
       })()
         .catch(err => {
-          this.servers.del(key);
+          this.servers.delete(key);
           return Promise.reject(err);
         });
 

@@ -4,6 +4,9 @@ import * as inspectorUtil from '../util/inspectorUtil';
 import type { InspectorModuleResult, ProxyContext } from '../types';
 import type Inspector from './Inspector';
 
+// ws 8 起帧内容都是 Buffer, devtools 的 payloadData 需要字符串
+const payload = (msg: any) => (Buffer.isBuffer(msg) ? msg.toString() : msg);
+
 export default (inspector: Inspector): InspectorModuleResult => {
   const webSocketWillSendHandshakeRequest = (ctx: ProxyContext) => {
     ctx.requestId = inspector.nextId();
@@ -55,7 +58,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
         response: {
           opcode: 1,
           mask: true,
-          payloadData: msg,
+          payloadData: payload(msg),
         },
       });
     });
@@ -70,7 +73,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
         response: {
           opcode: 1,
           mask: false,
-          payloadData: msg,
+          payloadData: payload(msg),
         },
       });
     };

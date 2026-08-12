@@ -20,12 +20,13 @@ const websocket: ProxyPluginFn = async ctx => {
     headers: reqHeaders,
   });
 
-  let hangList = [];
+  // ws 8 起 message 事件固定给 Buffer, 文本帧要靠 isBinary 判断, 否则转发会变成二进制帧
+  let hangList: [WebSocket.RawData, boolean][] = [];
   res.once('close', onclose)
     .once('error', onclose)
-    .on('message', msg => {
+    .on('message', (msg, isBinary) => {
       try {
-        hangList ? hangList.push(msg) : ws.send(msg);
+        hangList ? hangList.push([ msg, isBinary ]) : ws.send(msg, { binary: isBinary });
       } catch (err) {
         onclose();
       }
@@ -52,9 +53,9 @@ const websocket: ProxyPluginFn = async ctx => {
 
   ws.once('close', onclose)
     .once('error', onclose)
-    .on('message', msg => {
+    .on('message', (msg, isBinary) => {
       try {
-        res.send(msg);
+        res.send(msg, { binary: isBinary });
       } catch (err) {
         onclose();
       }
@@ -62,7 +63,7 @@ const websocket: ProxyPluginFn = async ctx => {
 
   // only for inspect TODO
   process.nextTick(() => {
-    hangList.forEach(msg => ws.send(msg));
+    hangList.forEach(([ msg, isBinary ]) => ws.send(msg, { binary: isBinary }));
     hangList = null;
   });
 };

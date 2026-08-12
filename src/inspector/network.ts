@@ -1,5 +1,5 @@
 import Stream from 'stream';
-import LRU from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import fetch from 'node-fetch';
 import * as inspectorUtil from '../util/inspectorUtil';
 import proxyAgent from '../util/proxyAgent';
@@ -18,7 +18,7 @@ interface RequestInfo {
 }
 
 export default (inspector: Inspector): InspectorModuleResult => {
-  const requestInfoPool = new LRU<string, RequestInfo>(1000);
+  const requestInfoPool = new LRUCache<string, RequestInfo>({ max: 1000 });
 
   const ctxParams = (ctx: ProxyContext) => ({
     timestamp: inspector.timestamp(),

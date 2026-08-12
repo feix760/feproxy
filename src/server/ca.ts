@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
 import forge from 'node-forge';
 
 export interface RootCA {
@@ -30,7 +29,7 @@ export function getRootCA(name: string, dir: string): RootCA {
   }
   const rootCA = createRootCA(name);
 
-  mkdirp.sync(path.dirname(keyFile));
+  fs.mkdirSync(path.dirname(keyFile), { recursive: true });
   fs.writeFileSync(keyFile, rootCA.pem.key);
   fs.writeFileSync(certFile, rootCA.pem.cert);
 

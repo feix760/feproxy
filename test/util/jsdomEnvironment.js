@@ -19,6 +19,13 @@ const NODE_GLOBALS = [
 ];
 
 class FeproxyJSDOMEnvironment extends JSDOMEnvironment {
+  // jsdom 环境默认只带 'browser' 导出条件, 而 ws 8 的 exports 里 browser 指向一个
+  // "ws does not work in the browser" 的桩, 用例里起的 feproxy 服务会直接崩,
+  // 所以这里换成 node 侧条件(前端代码走 webpack 打包, 不依赖 jest 的解析条件)。
+  exportConditions() {
+    return [ 'node', 'require', 'default' ];
+  }
+
   constructor(...args) {
     super(...args);
 
