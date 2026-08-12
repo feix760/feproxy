@@ -45,7 +45,9 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 
 分流**之前**先对首包做**代理账号验证**（见下文「代理账号验证」），CONNECT 和明文 HTTP 两支都被覆盖；TLS 那支没法在 socket 层验，走 HTTP 中间件。
 
-`ServerFactory` 按 `group:hostname:port` 用 LRU 缓存 server 实例；先探测上游真实证书，验证通过（或开了 `ignoreCertError`）用 **trusted** 根证书签发，否则用 **untrust** 根证书 —— 这样浏览器会对本来就有证书问题的站点保持报错。根证书名带用户名后缀（`feproxy-<user>.crt`），存放在 `RC_DIR`（默认 `~/.feproxy`）。
+`ServerFactory` 按 `group:hostname:port` 用 LRU 缓存 https server（缓存的是 promise，并发请求共享一次创建）；先探测上游真实证书，验证通过（或开了 `ignoreCertError`）用 **trusted** 根证书签发，否则用 **untrust** 根证书 —— 这样浏览器会对本来就有证书问题的站点保持报错。根证书名带用户名后缀（`feproxy-<user>.crt`），存放在 `RC_DIR`（默认 `~/.feproxy`）。
+
+两级缓存分开是为了控内存：`tslServers`（200 条 / 30min ttl）里每个 server 都带一份原生 TLS SecureContext，只涨 RSS 不体现在 JS heap，所以数量收着，**淘汰时 `dispose` 里必须 `close()`**，否则挂在上面的空闲 keep-alive 连接会拖着 server 不释放（`close()` 只清空闲连接，已升级的 ws 隧道和传输中的响应都不受影响，有用例覆盖）；`certs`（1000 条 / 1h ttl）只存几 KB 的 PEM 字符串，缓存得更久，这样 server 被淘汰后重建不用再验一次上游证书（一次网络往返）+ 重新签一次名。明文 server 只有一个，直接挂 `factory.httpServer`，不进 LRU。改 `ignoreCertError` 后已缓存域名最多 1h 后才生效。
 
 ### 2. URL 重建（`src/extend/context.ts`）
 
@@ -68,6 +70,8 @@ MITM 之后请求行只剩 `/path`，`ctx.url` 被重写为 getter，结合 `soc
 ### 4. WebSocket 接入 Koa（`src/server/WebSocketServer.ts`）
 
 用 `ws` 的 `verifyClient` 钩子造一个 Koa ctx 并跑中间件链，`ctx.accept()` 完成握手并 resolve 出 socket（因此 `ctx.accept` 的语义被替换了，不是 Koa 的内容协商）。响应头通过重写 ctx.set + `headers` 事件注入。中间件没调 `accept` 就自动 404/500。
+
+全局只有**一个** `ws.Server`（`noServer` 模式、关掉 `clientTracking`），`getServer()` 惰性创建，`attach(server)` 把它接到每个 http/https server 的 `upgrade` 事件上（等价于 ws 自己的 `options.server` 模式，`handleUpgrade` 里照样走 `verifyClient`）。MITM 下 https server 是按域名建的，别再改回「每个 server new 一个 ws.Server」。
 
 ### 5. 代理插件链（`src/middleware/proxy.ts` + `src/proxy/*` + `src/proxyPlugins.ts`）
 

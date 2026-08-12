@@ -1,4 +1,5 @@
 import http from 'http';
+import type https from 'https';
 import compose from 'koa-compose';
 import ws from 'ws';
 import type { FeproxyApp, ProxyContext } from '../types';
@@ -20,14 +21,39 @@ class WebSocketServer {
     this.middleware = [];
   }
 
-  listen(options: ws.ServerOptions) {
-    this.server = new ws.Server({
-      ...options,
-      verifyClient: this.verifyClient.bind(this) as any,
-    });
+  /**
+   * 唯一的 ws.Server 实例, 用 noServer 模式, 由 `attach()` 挂到各个 http/https server 上。
+   * MITM 下 https server 是按域名建的, 以前每个 server 都 new 一个 ws.Server,
+   * 抓 N 个域名就堆 N 个实例, 且 `this.server` 每次被后一个覆盖。
+   */
+  getServer() {
+    if (!this.server) {
+      this.server = new ws.Server({
+        noServer: true,
+        // clientTracking 只为提供 wss.clients, 这里没人用, 关掉免得握着所有活连接
+        clientTracking: false,
+        verifyClient: this.verifyClient.bind(this) as any,
+      });
 
-    this.server.on('headers', this.onHeaders.bind(this));
-    this.server.on('connection', this.onConnection.bind(this));
+      this.server.on('headers', this.onHeaders.bind(this));
+      this.server.on('connection', this.onConnection.bind(this));
+    }
+    return this.server;
+  }
+
+  /**
+   * 把共享的 ws.Server 接到一个 http/https server 上,
+   * 和 ws 自己的 `options.server` 模式做的事一样(handleUpgrade 里照样走 verifyClient)
+   */
+  attach(server: http.Server | https.Server) {
+    const wsServer = this.getServer();
+
+    (server as http.Server).on('upgrade', (req: WsRequest, socket, head) => {
+      wsServer.handleUpgrade(req, socket, head, client => {
+        wsServer.emit('connection', client, req);
+      });
+    });
+    return this;
   }
 
   onHeaders(headers: string[], req: WsRequest) {

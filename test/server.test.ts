@@ -88,11 +88,34 @@ describe('server factory test', () => {
 
   test('remove cache when create tsl server failed', async () => {
     const port = await getPort();
-    const key = `:127.0.0.1:${port}`;
 
     await expect(factory.getTSLServer({ hostname: '127.0.0.1', port })).rejects.toBeTruthy();
     // 失败的 promise 不能留在缓存里, 否则之后永远拿到失败结果
-    expect(factory.servers.get(key)).toBeUndefined();
+    expect(factory.tslServers.peek(`:127.0.0.1:${port}`)).toBeUndefined();
+    expect(factory.certs.peek(`127.0.0.1:${port}`)).toBeUndefined();
+  });
+
+  test('close tsl server on evict', async () => {
+    const server = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
+    const close = jest.spyOn(server, 'close');
+
+    // server 实例带着原生 TLS context, 淘汰时必须 close 才能释放
+    factory.tslServers.clear();
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(close).toHaveBeenCalled();
+  });
+
+  test('reuse cached certificate after server evicted', async () => {
+    const verify = jest.spyOn(factory, 'verifyCertificate');
+
+    // server 被淘汰后重建, 证书还在缓存里, 不该再验一次上游证书
+    const rebuilt = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
+
+    expect(rebuilt).toBeInstanceOf(https.Server);
+    expect(verify).not.toHaveBeenCalled();
+
+    verify.mockRestore();
   });
 
   test('cache http server', async () => {
@@ -100,6 +123,16 @@ describe('server factory test', () => {
 
     expect(server).toBeInstanceOf(http.Server);
     expect(await factory.getHTTPServer()).toBe(server);
+  });
+
+  test('share one ws server for all servers', async () => {
+    const httpServer = await factory.getHTTPServer();
+    const tslServer = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
+
+    // 以前是每个 server 一个 ws.Server, 现在共用一个 noServer 实例
+    expect(app.ws.getServer()).toBe(app.ws.server);
+    expect(httpServer.listenerCount('upgrade')).toEqual(1);
+    expect(tslServer.listenerCount('upgrade')).toEqual(1);
   });
 });
 
