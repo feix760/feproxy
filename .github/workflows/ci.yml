@@ -17,16 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
+          cache: pnpm
 
-      # prepare 会跑 npm run build, 静态资源相关用例依赖 lib/public
-      - run: npm ci
+      # prepare 会跑 pnpm run build, 静态资源相关用例依赖 lib/public
+      - run: pnpm install --frozen-lockfile
 
       # lint + build + jest
-      - run: npm test
+      - run: pnpm test
 
       - name: Upload coverage
         if: matrix.node == '24'
