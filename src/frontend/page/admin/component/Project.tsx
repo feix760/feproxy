@@ -4,6 +4,7 @@ import './Project.less';
 import { setConfig } from '../action/config';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import type { DisplayProject, DisplayRule, Project, Rule, RuleParam } from '../types';
+import Icon from './Icon';
 
 // querystring.stringify renders null/undefined as an empty value; URLSearchParams
 // would render the literal string "undefined", so normalise before appending.
@@ -164,19 +165,19 @@ export default function ProjectList() {
   }, [ projects, updateProject ]);
 
   return (
-    <div className="box">
-      <h3 className="box-header">
-        Projects
-      </h3>
-      <div className="box-content">
+    <div className="settings-card projects-card">
+      <div className="card-heading">Projects</div>
+      <div className="card-content">
         { projects.map(item => (
           <div className="project-item" key={ item.id }>
             <div className="header">
-              <span className="open-state"
+              <button type="button"
+                className="open-state icon micro"
+                title={ opens[item.id] ? 'Collapse' : 'Expand' }
                 onClick={ () => toggleOpen(item.id) }
               >
-                <i className={ opens[item.id] ? 'el-icon-arrow-down' : 'el-icon-arrow-right' }></i>
-              </span>
+                <Icon name={ opens[item.id] ? 'chevron-down' : 'chevron-right' } />
+              </button>
               <input className="enable"
                 type="checkbox"
                 checked={ item.enable }
@@ -186,25 +187,29 @@ export default function ProjectList() {
 
               <span className="name"
                 contentEditable="true"
+                data-placeholder="project name"
                 onBlur={ e => updateProject(item.id, { name: readEditable(e) }) }
                 dangerouslySetInnerHTML={{ __html: item.name }}
               ></span>
 
-              <span className="icon el-icon-delete remove-project"
+              <button type="button"
+                className="icon remove-project"
+                title="Remove project"
                 onClick={ () => removeProject(item.id) }
-              ></span>
+              >
+                <Icon name="bin" />
+              </button>
             </div>
             <div className="content" style={{ display: opens[item.id] ? '' : 'none' }}>
               <ul>
                 { item.rules.map(rule => (
                   <li key={rule.id} className="rule-item">
-                    <div className="enable">
-                      <input type="checkbox"
-                        checked={ rule.enable }
-                        onChange={ (e: ChangeEvent<HTMLInputElement>) =>
-                          updateRule(item.id, rule.id, { enable: e.target.checked }) }
-                      />
-                    </div>
+                    <input className="enable"
+                      type="checkbox"
+                      checked={ rule.enable }
+                      onChange={ (e: ChangeEvent<HTMLInputElement>) =>
+                        updateRule(item.id, rule.id, { enable: e.target.checked }) }
+                    />
                     <div className="input"
                       contentEditable="true"
                       data-placeholder="match"
@@ -217,25 +222,34 @@ export default function ProjectList() {
                       onBlur={ e => updateRule(item.id, rule.id, { to: readEditable(e) }) }
                       dangerouslySetInnerHTML={{ __html: rule.to }}
                     ></div>
-                    <div className="operation">
-                      <span
-                        className="icon el-icon-delete remove-rule"
-                        onClick={ () => removeRule(item.id, rule.id) }
-                      ></span>
-                    </div>
+                    <button type="button"
+                      className="icon remove-rule"
+                      title="Remove rule"
+                      onClick={ () => removeRule(item.id, rule.id) }
+                    >
+                      <Icon name="bin" />
+                    </button>
                   </li>
                 )) }
               </ul>
-              <div className="button-wrap">
-                <button type="button" className="add-rule" onClick={ () => addRule(item.id) }>Add</button>
-              </div>
+              <button type="button"
+                className="add-rule text text-with-icon"
+                onClick={ () => addRule(item.id) }
+              >
+                <Icon name="plus" />
+                Add rule
+              </button>
             </div>
           </div>
         ))}
-        <div className="button-wrap">
-          <button type="button" className="add-project" onClick={ addProject }>Add</button>
-        </div>
       </div>
+      <button type="button"
+        className="add-project text text-with-icon"
+        onClick={ addProject }
+      >
+        <Icon name="plus" />
+        Add project
+      </button>
     </div>
   );
 }

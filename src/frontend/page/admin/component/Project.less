@@ -1,128 +1,106 @@
-.button-wrap {
-  margin-top: 10px;
+.projects-card {
+  // 「+ Add project」按在卡片下方, 和 devtools 设置页里卡片外的操作按钮一致
+  .add-project {
+    margin-top: var(--size-5);
+  }
 }
 
 .project-item {
-  margin-top: 6px;
-  .icon {
-    font-size: 12px;
-    color: #6e6e6e;
-    cursor: pointer;
-    &:hover {
-      color: #333;
-    }
-    & ~ .icon {
-      margin-left: 10px;
-    }
-  }
   .header {
-    height: 24px;
-    line-height: 24px;
-    font-size: 0;
-    .open-state {
-      display: inline-block;
-      height: 24px;
-      line-height: 24px;
-      vertical-align: top;
-      padding: 0 3px;
-      cursor: pointer;
-      width: 10px;
-      overflow: hidden;
-      i {
-        font-size: 24px;
-        transform: scale(0.4) translate(-16px, 0);
-        transform-origin: center center;
-      }
-    }
-    .enable {
-      display: inline-block;
-      vertical-align: top;
-      position: relative;
-      top: 6px;
-      margin-left: 2px;
-    }
+    display: flex;
+    align-items: center;
+    gap: var(--size-3);
+
     .name {
-      display: inline-block;
-      margin-left: 2px;
-      min-width: 100px;
-      padding: 4px 6px;
-      box-sizing: border-box;
+      flex: auto;
+      min-width: 0;
+      margin: 0 var(--size-2);
+      padding: 0 var(--size-3);
       border: 1px solid transparent;
-      vertical-align: top;
-      font-size: 14px;
-      line-height: 1;
-      height: 24px;
-      color: #222;
-      &:focus,
+      border-radius: var(--sys-shape-corner-extra-small);
+      font-size: var(--typescale-body3-size);
+      line-height: var(--size-11);
+      color: var(--sys-color-on-surface);
       &:hover {
-        border: 1px solid rgb(231, 231, 231);
+        border-color: var(--sys-color-neutral-outline);
+      }
+      &:focus {
+        border-color: transparent;
+        outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+        outline-offset: calc(-1 * var(--size-1));
       }
     }
-    .icon {
-      vertical-align: top;
-      position: relative;
-      top: 6px;
-      margin-left: 2px;
+    // 删除按钮平时不显眼, hover 到整行才浮出来 —— devtools 列表行的惯例
+    .remove-project {
+      opacity: 0;
+    }
+    &:hover .remove-project,
+    .remove-project:focus-visible {
+      opacity: 1;
     }
   }
+
   .content {
-    max-width: 1000px;
-    margin: 6px 18px 0;
-    ul {
-      border: 1px solid rgb(231, 231, 231);
-      min-height: 18px;
-      li {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: 5px;
-        & ~ li {
-          border-top: 1px solid rgb(231, 231, 231);
-        }
-        font-size: 12px;
-        line-height: 18px;
-        word-break: break-all;
-      }
-      .enable {
-        width: 30px;
-        text-align: center;
-      }
+    margin: var(--size-3) 0 var(--size-2) var(--size-11);
 
-      .input {
-        display: flex;
-        flex-direction: row;
-        flex: 1;
-        padding: 5px;
-        width: 100%;
-        box-sizing: border-box;
-        border: 1px solid transparent;
-
-        &:focus,
-        &:hover {
-          border: 1px solid rgb(231, 231, 231);
-        }
-        ~ .input {
-          margin-left: 10px;
-        }
-        select {
-          margin-right: 10px;
-          height: 18px;
-          box-sizing: border-box;
-          line-height: 16px;
-        }
-        div {
-          flex: 1;
-        }
-      }
-      .operation {
-        width: 35px;
-        text-align: center;
-      }
+    ul:not(:empty) {
+      margin-bottom: var(--size-3);
+      border: 1px solid var(--app-color-card-divider);
+      border-radius: var(--sys-shape-corner-extra-small);
     }
   }
-  .button-wrap {
-    margin-top: 5px;
+}
+
+.rule-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--size-5);
+  padding: var(--size-3) var(--size-4);
+
+  & ~ .rule-item {
+    border-top: 1px solid var(--app-color-card-divider);
   }
+
+  // devtools ui/components/input/textInput.css 的 .devtools-text-input, 高度收到 24px
+  // 以适应密集的规则列表
+  .input {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: var(--size-3) var(--size-4);
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--sys-color-on-surface);
+    font-size: var(--typescale-body4-size);
+    line-height: var(--typescale-body4-line-height);
+    word-break: break-all;
+
+    &:hover {
+      border-color: var(--sys-color-neutral-outline);
+    }
+
+    &:focus {
+      outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+      outline-offset: calc(-1 * var(--size-1));
+    }
+  }
+
+  .remove-rule {
+    opacity: 0;
+  }
+  &:hover .remove-rule,
+  .remove-rule:focus-visible {
+    opacity: 1;
+  }
+}
+
+// 绿色的新增按钮: 沿用之前定下的绿色, 但取 devtools 调色板里的 green,
+// 这样深浅色都跟着切换、也不显得是外来色
+.add-project,
+.add-rule {
+  color: var(--sys-color-green);
 }
 
 [contenteditable=true] {
@@ -132,5 +110,5 @@
 [contenteditable=true]:empty:before {
   content: attr(data-placeholder);
   display: block; /* For Firefox */
-  opacity: 0.5;
+  color: var(--sys-color-token-subtle);
 }

@@ -144,7 +144,7 @@ describe('project rule display test', () => {
     fireEvent.click(query('.project-item > .header .enable')[0]);
     expect(getProjects()[0].enable).toEqual(false);
 
-    fireEvent.click(query('.rule-item .enable input')[0]);
+    fireEvent.click(query('.rule-item .enable')[0]);
     expect(getProjects()[0].rules[0].enable).toEqual(false);
   });
 

@@ -1,0 +1,94 @@
+// Chrome DevTools 设计 token 的一个子集, 让管理页和旁边的 devtools iframe 长得一样。
+//
+// 值不是自己挑的: 尺寸/字号/圆角/阴影抄自锁定版本 @chrome-devtools/inspector 的
+// chunk-f16spr11.css, 颜色顺着 devtools 的 token 链
+// (--sys-color-x → --ref-palette-y → --color-ref-y) 解到底。最后那层 --color-ref-*
+// 是 Chrome 自己注入的、npm 构建产物里没有, 所以 ref-palette 用 Chromium GM3 baseline
+// 的 hex 写死, 每行注释标出它对应哪个 ref-palette。
+//
+// devtools 默认主题是「跟随系统」, 所以这里用 prefers-color-scheme 对齐; 用户若在
+// devtools 里手动锁了主题, 两边可能不一致 —— 隔着 iframe 读不到它的主题, 没法再准。
+// 升级 @chrome-devtools/inspector 时值可能过期, 重新从 bundle 里捞一遍即可。
+
+:root {
+  // 让原生 checkbox / 滚动条跟着深浅色走。少了这条深色下 checkbox 是白底的。
+  color-scheme: light dark;
+
+  // -- 尺寸标尺 (--sys-size-*), 只留用得上的几档
+  --size-1: 1px;
+  --size-2: 2px;
+  --size-3: 4px;
+  --size-4: 6px;
+  --size-5: 8px;
+  --size-6: 12px;
+  --size-7: 14px;
+  --size-8: 16px;
+  --size-9: 20px;
+  --size-11: 24px;
+  --size-12: 28px;
+  --size-13: 32px;
+  --size-31: 320px;
+  --size-35: 576px;
+  --size-38: 896px;
+  --size-42: 1024px;
+  --size-48: 1200px;
+  --size-56: 1400px;
+
+  // -- 字体
+  --default-font-family: ".SFNSDisplay-Regular", "Helvetica Neue", "Lucida Grande", sans-serif;
+  --typeface-weight-regular: 400;
+  --typeface-weight-medium: 500;
+  --typescale-body4-size: 12px;
+  --typescale-body4-line-height: 16px;
+  --typescale-body3-size: 13px;
+  --typescale-body3-line-height: 20px;
+  --typescale-body2-size: 14px;
+  --typescale-body2-line-height: 20px;
+  --typescale-headline5-size: 20px;
+
+  // -- 形状与高度
+  --sys-shape-corner-small: 8px;
+  --sys-shape-corner-extra-small: 4px;
+  --sys-shape-corner-full: 9999px;
+  --sys-elevation-level2: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+
+  // -- 颜色(浅色)
+  --sys-color-cdt-base-container: #fdfcfb;         // ref-palette-neutral99
+  --sys-color-on-surface: #1f1f1f;                 // ref-palette-neutral10
+  --sys-color-on-surface-subtle: #474747;          // ref-palette-neutral30
+  --sys-color-token-subtle: #757575;               // ref-palette-neutral50
+  --sys-color-neutral-outline: #c7c7c7;            // ref-palette-neutral80
+  --sys-color-primary: #0b57d0;                    // ref-palette-primary40
+  --sys-color-primary-bright: #1b6ef3;             // ref-palette-primary50
+  --sys-color-tonal-outline: #a8c7fa;              // ref-palette-primary80
+  --sys-color-tonal-container: #d3e3fd;            // ref-palette-primary90
+  --sys-color-on-tonal-container: #041e49;         // ref-palette-primary10
+  --sys-color-green: #1e8e3e;                      // ref-palette-green40
+  --sys-color-state-focus-ring: #0b57d0;           // ref-palette-primary40
+  --sys-color-state-hover-on-subtle: rgba(31, 31, 31, 0.06);          // neutral10 6%
+  --sys-color-state-ripple-neutral-on-subtle: rgba(31, 31, 31, 0.08); // neutral10 8%
+  --app-color-card-background: #ffffff;            // base-container-elevated → neutral100
+  --app-color-card-divider: rgba(0, 0, 0, 0.06);   // neutral0 6%
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sys-color-cdt-base-container: #262626;       // ref-palette-neutral15
+    --sys-color-on-surface: #e3e3e3;               // ref-palette-neutral90
+    --sys-color-on-surface-subtle: #c7c7c7;        // ref-palette-neutral80
+    --sys-color-token-subtle: #8f8f8f;             // ref-palette-neutral60
+    --sys-color-neutral-outline: #757575;          // ref-palette-neutral50
+    --sys-color-primary: #a8c7fa;                  // ref-palette-primary80
+    --sys-color-primary-bright: #7cacf8;           // ref-palette-primary70
+    --sys-color-tonal-outline: #7b8ba6;            // ref-palette-secondary50, 近似值
+    --sys-color-tonal-container: #394457;          // ref-palette-secondary30, 近似值
+    --sys-color-on-tonal-container: #dae2f9;       // ref-palette-secondary90, 近似值
+    --sys-color-green: #6dd58c;                    // ref-palette-green80
+    --sys-color-state-focus-ring: #a8c7fa;         // ref-palette-primary80
+    --sys-color-state-hover-on-subtle: rgba(253, 252, 251, 0.1);           // neutral99 10%
+    --sys-color-state-ripple-neutral-on-subtle: rgba(253, 252, 251, 0.16); // neutral99 16%
+    // surface2 = color-mix(in srgb, primary80 8%, neutral10), 预先算好
+    --app-color-card-background: #2a2c31;
+    --app-color-card-divider: rgba(255, 255, 255, 0.1);
+  }
+}

@@ -1,26 +1,11 @@
-body {
-  overflow-y: hidden;
-}
-
-// 浮在 devtools iframe 右下角: 那儿是网络面板底部汇总栏的空白区(文字左对齐), 不会挡住控件。
-// devtools 跟随系统深浅色, 所以颜色写死, 两种主题下都得看得见。
+// 浮在 devtools iframe 右上角: 那儿是网络面板顶部工具栏右侧的空白区, 不会挡住控件。
+// 用 devtools 的 tonal 按钮样式(见 index.less), 深浅色下都够显眼。
 .open-settings {
   position: fixed;
   right: 66px;
-  top: 3px;
+  top: 1px;
   z-index: 1;
-  margin: 0;
-  padding: 3px 10px;
-  border: 0;
-  border-radius: 4px;
-  font: 500 12px/1.2 system-ui, sans-serif;
-  color: #fff;
-  background: #1A73E8;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
+  box-shadow: var(--sys-elevation-level2);
 }
 
 .dialog {
@@ -29,67 +14,103 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.5);
   z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+  // = devtools 的 .settings-window-main
   &-content {
     position: absolute;
     top: 10px;
     bottom: 10px;
     left: 10px;
     right: 10px;
-    background: #fff;
-    padding: 10px;
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
-    overflow-y: auto;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.2) 0px 2px 4px 0px, rgba(0, 0, 0, 0.1) 0px 2px 6px 0px;
-    .close-button {
-      position: absolute;
-      right: 10px;
-      top: 10px;
-      z-index: 1;
-      width: 40px;
-      height: 40px;
-      line-height: 40px;
-      border-radius: 50%;
-      font-size: 26px;
-      font-weight: bold;
-      text-align: center;
-      color: #333;
-      cursor: pointer;
-      transform: scale(0.25);
-      transform-origin: right top;
-      &:hover {
-        color: #fff;
-        background: #999;
-      }
+    border-radius: var(--sys-shape-corner-small);
+    background: var(--sys-color-cdt-base-container);
+    color: var(--sys-color-on-surface);
+    box-shadow: var(--sys-elevation-level2);
+    overflow: hidden;
+  }
+}
+
+// devtools settingsScreen.css 的 .settings-window-title: 20px 标题 + 前置图标
+.settings-window-title {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin: var(--size-8) var(--size-7);
+  font-size: var(--typescale-headline5-size);
+  color: var(--sys-color-on-surface);
+
+  > .devtools-icon {
+    flex: none;
+    width: var(--size-9);
+    height: var(--size-9);
+    margin-right: var(--size-4);
+  }
+  .close-button {
+    margin-left: auto;
+  }
+}
+
+// 左边多 6px, 加上卡片自己的 8px padding 刚好凑成标题的 14px 左边距, 卡片和标题左对齐
+.settings-card-container-wrapper {
+  flex: auto;
+  padding: 0 var(--size-4) var(--size-8);
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
+}
+
+.settings-card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-9);
+}
+
+// devtools ui/components/cards/card.css: heading 在卡片外上方, content 是圆角+投影的盒子,
+// 每个直接子元素自带 padding, 非首个用 1px 发丝线隔开。
+// 宽度是刻意偏离 devtools 标准的 --size-35(576px): Projects 卡装的是「启用 + match + to +
+// 删除」的类表格编辑器, 576px 下两个输入框各只剩 ~200px, 长正则和长 URL 根本读不清。
+// 所有卡片同宽, 才能左对齐成一条整齐的边。
+.settings-card {
+  width: 100%;
+  max-width: var(--size-48);
+  min-width: var(--size-31);
+  padding: 0 var(--size-5);
+  box-sizing: border-box;
+
+  .card-heading {
+    margin-bottom: var(--size-5);
+    font-size: var(--typescale-body2-size);
+    font-weight: var(--typeface-weight-medium);
+    line-height: var(--typescale-body2-line-height);
+    color: var(--sys-color-on-surface);
+    white-space: nowrap;
+  }
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--sys-shape-corner-small);
+    background: var(--app-color-card-background);
+    box-shadow: var(--sys-elevation-level2);
+
+    > * {
+      padding: var(--size-4) var(--size-6);
+    }
+    > *:not(:first-child) {
+      border-top: 1px solid var(--app-color-card-divider);
     }
   }
 }
 
-.box {
-  &-header {
-    position: relative;
-    height: 20px;
-    line-height: 20px;
-    font-size: 18px;
-    font-weight: normal;
-    padding: 0 0 10px;
-    border-bottom: 1px solid #EEEEEE;
-    color: rgb(48, 57, 66);
-  }
-  &-content {
-    padding-bottom: 10px;
-  }
-}
-
 .settings-item {
-  margin-left: 5px;
-  font-size: 14px;
-  height: 24px;
-  line-height: 24px;
-  color: #222;
-
-  input[type=checkbox] {
-    margin-right: 6px;
-  }
+  display: flex;
+  align-items: center;
+  gap: var(--size-5);
+  font-size: var(--typescale-body3-size);
+  line-height: var(--typescale-body3-line-height);
+  color: var(--sys-color-on-surface);
+  cursor: pointer;
 }

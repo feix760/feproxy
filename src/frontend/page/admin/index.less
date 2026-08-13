@@ -1,20 +1,134 @@
 body {
   overflow-y: hidden;
+  background: var(--sys-color-cdt-base-container);
 }
 
+// devtools 的按钮基类, 抄自 @chrome-devtools/inspector 里的 ui/components/buttons/button.css。
+// 变体用 class 叠加: .text / .outlined / .tonal / .icon(纯图标) / .text-with-icon。
+// hover 和 active 用一层 ::before 覆盖色而不是直接改 background, 这样 tonal / outlined
+// 这些本身有底色的变体也能叠同一套状态色 —— devtools 就是这么做的。
 button {
-  padding: 0px 12px;
-  height: 24px;
-  line-height: 24px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  font-size: 12px;
-  color: rgb(26, 115, 232);
-  background-color: #fff;
+  --hover-layer-color: var(--sys-color-state-hover-on-subtle);
+  --active-layer-color: var(--sys-color-state-ripple-neutral-on-subtle);
+  --button-height: var(--size-11);
+  --button-width: fit-content;
+  --icon-size: var(--size-9);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--button-height);
+  width: var(--button-width);
+  padding: 0 var(--size-6);
+  border: 0;
+  border-radius: var(--sys-shape-corner-full);
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  font-family: var(--default-font-family);
+  font-size: var(--typescale-body4-size);
+  font-weight: var(--typeface-weight-medium);
+  line-height: var(--typescale-body4-line-height);
   white-space: nowrap;
   cursor: pointer;
-  &:hover {
-    background-color: rgb(243, 243, 243);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: transparent;
+  }
+  &:hover::before {
+    background: var(--hover-layer-color);
+  }
+  &:active::before {
+    background: var(--active-layer-color);
+  }
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: var(--size-2);
+  }
+
+  .devtools-icon {
+    // 图标要浮在 ::before 覆盖层之上
+    position: relative;
+    flex: none;
+    width: var(--icon-size);
+    height: var(--icon-size);
+  }
+
+  &.text {
+    color: var(--sys-color-primary);
+  }
+
+  &.outlined {
+    border: 1px solid var(--sys-color-tonal-outline);
+    color: var(--sys-color-primary);
+  }
+
+  &.tonal {
+    background: var(--sys-color-tonal-container);
+    color: var(--sys-color-on-tonal-container);
+  }
+
+  &.text-with-icon {
+    padding-left: var(--size-4);
+    .devtools-icon {
+      margin-right: var(--size-2);
+    }
+  }
+
+  // 纯图标按钮: 26x26 圆形, 图标 20px
+  &.icon {
+    --button-height: 26px;
+    --button-width: 26px;
+
+    padding: 0;
+    overflow: hidden;
+    color: var(--sys-color-on-surface-subtle);
+    &:hover {
+      color: var(--sys-color-on-surface);
+    }
+    &:focus-visible {
+      outline-offset: calc(-1 * var(--size-2));
+    }
+    &.micro {
+      --button-height: var(--size-8);
+      --button-width: var(--size-8);
+
+      border-radius: var(--sys-shape-corner-extra-small);
+    }
+  }
+}
+
+// devtools 的原生 checkbox: 12x12 + accent-color, hover 时 ::after 撑出 24x24 圆形覆盖层
+input[type=checkbox] {
+  position: relative;
+  flex: none;
+  // checkbox 是替换元素, 不给它 display: flex 的话 ::after 不会渲染, hover 覆盖层就没了
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: var(--sys-color-primary-bright);
+  cursor: pointer;
+
+  &:hover::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border-radius: var(--sys-shape-corner-full);
+    background: var(--sys-color-state-hover-on-subtle);
+  }
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: var(--size-2);
   }
 }

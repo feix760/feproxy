@@ -1,5 +1,5 @@
+import './theme.less';
 import './reset.less';
-import 'element-theme-default';
 import './index.less';
 
 import { createRoot } from 'react-dom/client';
