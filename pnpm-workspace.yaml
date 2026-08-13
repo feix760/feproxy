@@ -1,0 +1,4 @@
+# pnpm 11 默认拦截依赖的构建脚本, 未在此声明的会以 ERR_PNPM_IGNORED_BUILDS 报错退出
+# unrs-resolver 是 eslint-import-resolver-typescript 的依赖, postinstall 只做 napi 平台包校验
+allowBuilds:
+  unrs-resolver: true
