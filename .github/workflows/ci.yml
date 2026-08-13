@@ -17,7 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # 本地开发用的是 pnpm 11, 这里锁住大版本保持一致
       - uses: pnpm/action-setup@v4
+        with:
+          version: 11
 
       - uses: actions/setup-node@v5
         with:
