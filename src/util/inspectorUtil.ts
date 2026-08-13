@@ -29,7 +29,7 @@ export function buffer2String(buffer: Buffer): string {
     const charset = jschardet.detect(buffer.slice(0, 1024)).encoding || 'utf-8';
     return iconv.decode(buffer, charset).toString();
   } catch (err) {
-    console.error('Decode text failed', err);
+    console.error('Decode text failed', err?.message);
   }
   return null;
 }

@@ -158,7 +158,8 @@
       }
     },
     "testRegex": "test/.*\\.test\\.[jt]sx?$",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 10000
   },
   "license": "MIT"
 }

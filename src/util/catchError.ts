@@ -7,7 +7,7 @@ export default function catchError(stream: Duplex) {
       if (stream.destroyed === false && typeof stream.destroy === 'function') {
         stream.destroy();
       }
-      console.error('error', err && err.message);
+      console.error('error', err?.message);
     }
   }
   if (stream && !stream.listeners('error').includes(onerror)) {
