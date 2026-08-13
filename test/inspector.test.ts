@@ -85,11 +85,15 @@ class InspectorWS {
 
 describe('inspect test', () => {
   let app: FeproxyApp;
+  let upstream: util.TestUpstream;
+
   beforeAll(async () => {
     app = await util.startApp();
+    upstream = await util.startUpstream();
   });
 
   afterAll(async () => {
+    await upstream.close();
     await util.stopApp(app);
   });
 
@@ -110,7 +114,7 @@ describe('inspect test', () => {
     expect(ret[1].frameTree).toBeTruthy();
     expect(ret[2].content).toBeTruthy();
 
-    const url = util.getTestURL();
+    const { url } = upstream;
     const [ request ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
       fetch(url, {
@@ -213,7 +217,7 @@ describe('inspect test', () => {
 
     expect(inspector.client).toBeTruthy();
 
-    const url = util.getTestURL();
+    const { url } = upstream;
     await inspector.sendMsg('Network.setBlockedURLs', {
       urls: [ url ],
     });
@@ -245,7 +249,7 @@ describe('inspect test', () => {
 
     await inspector.open();
 
-    const url = util.getTestURL();
+    const { url } = upstream;
     const [
       responseReceived,
       loadingFinished,
@@ -271,7 +275,7 @@ describe('inspect test', () => {
 
     await inspector.open();
 
-    const url = util.getTestURL();
+    const { url } = upstream;
 
     const [ requestSendInfo ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
@@ -555,11 +559,15 @@ describe('inspect local upstream test', () => {
 
 describe('inspect disabled test', () => {
   let app: FeproxyApp;
+  let upstream: util.TestUpstream;
+
   beforeAll(async () => {
     app = await util.startApp({ inspect: false });
+    upstream = await util.startUpstream();
   });
 
   afterAll(async () => {
+    await upstream.close();
     await util.stopApp(app);
   });
 
@@ -574,7 +582,7 @@ describe('inspect disabled test', () => {
     });
 
     // 关闭抓包后请求依然可以正常转发
-    const response = await fetch(util.getTestURL(), {
+    const response = await fetch(upstream.url, {
       agent: util.getProxyAgent(app),
     });
 

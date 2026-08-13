@@ -23,7 +23,7 @@ npx cross-env NODE_ENV=testing npx jest test/proxy.test.ts -t '用例名' --cove
 - **必须带 `NODE_ENV=testing`**，`.babelrc` 只在该 env 下开 commonjs transform，否则报 "Cannot use import statement outside a module"。
 - jest 默认收集覆盖率且有全局阈值，跑单文件时加 `--coverage=false`。
 - 测试直接跑 `src/`，但 `src/util/paths.ts` 指向 `lib/public`，涉及静态资源/devtools/admin 页面的用例要先 `npm run build`。
-- 每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 在 `test/.tmp/`），部分用例会真的访问外网。
+- 每个 suite 用 `test/util/util.ts` 的 `startApp()` 起真实代理服务（随机端口、RC_DIR 在 `test/.tmp/`）；需要上游站点的用例用 `startUpstream()` 起本地 http/https 上游，**不要再引外网地址**（CI 连不上会让所有走 https 的用例超时，MITM 前那次上游证书探测也算）。
 - 前端用例靠文件头 `@jest-environment <rootDir>/test/util/jsdomEnvironment.js` 切环境（jsdom + 补 `ReadableStream`/`Response`/`TextEncoder`，否则 koa 3 抛 `ReferenceError`）。
 
 ## 架构

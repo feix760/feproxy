@@ -7,17 +7,21 @@ import * as util from './util/util';
 
 describe('proxy rule test', () => {
   let app: FeproxyApp;
+  let upstream: util.TestUpstream;
+
   beforeAll(async () => {
     app = await util.startApp();
+    upstream = await util.startUpstream();
   });
 
   afterAll(async () => {
+    await upstream.close();
     await util.stopApp(app);
   });
 
   test('rule delay test', async () => {
     const delay = 2000;
-    const url = util.getTestURL();
+    const { url } = upstream;
     app.config.update({
       projects: [ {
         name: '',
@@ -43,7 +47,7 @@ describe('proxy rule test', () => {
 
   test('rule file test', async () => {
     const filePath = __filename;
-    const url = util.getTestURL();
+    const { url } = upstream;
     app.config.update({
       projects: [ {
         name: '',
@@ -73,7 +77,7 @@ describe('proxy rule test', () => {
 
   test('rule header test', async () => {
     const key = 'test-header';
-    const url = util.getTestURL();
+    const { url } = upstream;
     app.config.update({
       projects: [ {
         name: '',
@@ -96,7 +100,7 @@ describe('proxy rule test', () => {
   });
 
   test('rule host test', async () => {
-    const url = util.getTestURL(false);
+    const url = upstream.httpURL;
     const param = {
       hostname: '127.0.0.1',
       port: await getPort(),
@@ -130,7 +134,7 @@ describe('proxy rule test', () => {
   });
 
   test('rule status test', async () => {
-    const url = util.getTestURL();
+    const { url } = upstream;
     const param = {
       status: 302,
       location: url,

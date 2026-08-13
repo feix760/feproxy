@@ -1,14 +1,21 @@
+import https from 'https';
+import type http from 'http';
+import type { TLSSocket } from 'tls';
 import fetch from 'node-fetch';
 import type { FeproxyApp } from '../src/types';
 import * as util from './util/util';
 
 describe('proxy test', () => {
   let app: FeproxyApp;
+  let upstream: util.TestUpstream;
+
   beforeAll(async () => {
     app = await util.startApp();
+    upstream = await util.startUpstream();
   });
 
   afterAll(async () => {
+    await upstream.close();
     await util.stopApp(app);
   });
 
@@ -47,13 +54,18 @@ describe('proxy test', () => {
 
   test('proxy https use connect', async () => {
     app.config.https = false;
-    const response = await fetch(util.getTestURL(), {
-      // 裸 TCP 对穿, 拿到的是上游真实证书, 所以要校验
-      agent: util.getProxyAgent(app, { rejectUnauthorized: true }),
+    // 用原生 https 请求(不用 node-fetch), 这样才拿得到握手拿到的证书
+    const agent = util.getProxyAgent(app)(new URL(upstream.url));
+    const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      https.get(upstream.url, { agent }, resolve).on('error', reject);
     });
     app.config.https = true;
 
-    expect(response.status).toEqual(200);
-    expect(await response.text()).toBeTruthy();
+    // 裸 TCP 对穿, 拿到的应该是上游真实证书; 被 MITM 的话这里是 feproxy 现签的那张
+    const cert = (response.socket as TLSSocket).getPeerCertificate();
+    expect(cert.raw.toString('base64')).toEqual(upstream.cert);
+
+    expect(response.statusCode).toEqual(200);
+    response.resume();
   });
 });
