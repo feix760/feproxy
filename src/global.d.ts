@@ -1,7 +1,8 @@
 // Ambient declarations. This file must stay a script (no top-level import/export)
 // so that `declare module 'node:net'` merges with @types/node instead of replacing it.
-// @types/node 26 起真正的声明都放在 `node:xxx` 下, 裸模块只是 `export * from 'node:xxx'`,
-// 所以必须augment `node:net`, 否则这里的 interface 会盖掉 re-export 的同名类。
+// Since @types/node 26 the real declarations live under `node:xxx` and the bare module is just
+// `export * from 'node:xxx'`, so we must augment `node:net` — otherwise the interfaces below
+// shadow the re-exported classes of the same name.
 
 declare module 'node:net' {
   interface Socket {

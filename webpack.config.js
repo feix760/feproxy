@@ -7,7 +7,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
 const devMode = mode === 'development';
-const outputPath = path.join(__dirname, 'lib/public'); // 输出目录
+const outputPath = path.join(__dirname, 'lib/public');
 const publicPath = '/';
 
 const entry = glob.sync([ 'src/frontend/page/*/index.tsx' ])

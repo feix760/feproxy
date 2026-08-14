@@ -54,14 +54,14 @@ describe('proxy test', () => {
 
   test('proxy https use connect', async () => {
     app.config.https = false;
-    // 用原生 https 请求(不用 node-fetch), 这样才拿得到握手拿到的证书
+    // Raw https instead of node-fetch, so we can read the certificate from the handshake
     const agent = util.getProxyAgent(app)(new URL(upstream.url));
     const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
       https.get(upstream.url, { agent }, resolve).on('error', reject);
     });
     app.config.https = true;
 
-    // 裸 TCP 对穿, 拿到的应该是上游真实证书; 被 MITM 的话这里是 feproxy 现签的那张
+    // Raw TCP passthrough gives the real upstream certificate; under MITM it'd be feproxy's
     const cert = (response.socket as TLSSocket).getPeerCertificate();
     expect(cert.raw.toString('base64')).toEqual(upstream.cert);
 

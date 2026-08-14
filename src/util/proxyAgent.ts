@@ -4,8 +4,8 @@ import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
 /**
- * HttpsProxyAgent 的构造选项只作用于「本机 → 代理」这一段,
- * 目标站的 TLS 选项要在 connect 时补进去
+ * HttpsProxyAgent's constructor options only cover the "local → proxy" hop; TLS options for the
+ * target site have to be passed in at connect time.
  */
 class TunnelAgent extends HttpsProxyAgent<string> {
   rejectUnauthorized: boolean;
@@ -21,12 +21,12 @@ class TunnelAgent extends HttpsProxyAgent<string> {
 }
 
 /**
- * node-fetch 没有 `proxy` 选项, 代理靠 agent 实现:
- * http 目标把请求行改写成绝对地址(顺带带上 Proxy-Authorization),
- * https 目标先 CONNECT 建隧道再升级 TLS。
+ * node-fetch has no `proxy` option, so proxying goes through an agent: http targets get the
+ * request line rewritten to an absolute url (carrying Proxy-Authorization along), https targets
+ * CONNECT a tunnel first and then upgrade to TLS.
  *
- * 账号写在 proxy url 里(`http://user:pass@host:port`)。
- * 返回值可直接作为 node-fetch 的 `agent`, 由目标协议决定用哪个。
+ * Credentials go in the proxy url (`http://user:pass@host:port`). The return value is usable
+ * directly as node-fetch's `agent`; the target protocol decides which one is used.
  */
 export default (proxy: string, options: https.AgentOptions = {}) => {
   const httpAgent = new HttpProxyAgent(proxy, options);

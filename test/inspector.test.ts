@@ -36,7 +36,7 @@ class InspectorWS {
     client.on('message', msg => {
       const { id, result, error, method, params } = JSON.parse(msg as string);
       if (id) {
-        // 没实现的方法回的是协议 error, 没有 result
+        // Unimplemented methods reply with a protocol error and no result
         client.emit(`callback_${id}`, error ? { error } : result);
       }
       if (method) {
@@ -257,7 +257,7 @@ describe('inspect test', () => {
     ] = await Promise.all([
       inspector.waitMethod('Network.responseReceived'),
       inspector.waitMethod('Network.loadingFinished'),
-      // node-fetch 默认带 accept-encoding: gzip,deflate
+      // node-fetch sends accept-encoding: gzip,deflate by default
       fetch(url, {
         agent: util.getProxyAgent(app),
       }).then(res => res.text()),
@@ -328,7 +328,7 @@ describe('inspect local upstream test', () => {
         return;
       }
       if (req.url === '/slow') {
-        // 响应头先到, 响应体拖一会儿, 用来模拟「还在传输中」的请求
+        // Headers arrive first and the body lags behind, to fake a still-loading request
         res.writeHead(200, { 'content-type': 'text/plain' });
         res.write('slow ');
         setTimeout(() => res.end('body'), 300);
@@ -407,9 +407,9 @@ describe('inspect local upstream test', () => {
   });
 
   test.each([ 304, 204 ])('loadingFinished immediately for %i', async status => {
-    // 这些状态码没有响应体, koa 直接 res.end(), 挂在 ctx.body 上的流会被 destroy ——
-    // 之前 proxy/http.ts 照样挂了流, 读它等不到 'end', 于是 devtools 一直收不到 loadingFinished
-    // (请求永远是 pending), streamResourceContent 也要干等满 STREAM_TIMEOUT
+    // These statuses have no body, so koa just calls res.end() and destroys any stream on ctx.body.
+    // proxy/http.ts used to attach one anyway; reading it never saw 'end', so devtools never got
+    // loadingFinished (the request stayed pending) and streamResourceContent waited out STREAM_TIMEOUT
     const [ request, responseReceived, loadingFinished, response ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
       inspector.waitMethod('Network.responseReceived'),
@@ -420,13 +420,13 @@ describe('inspect local upstream test', () => {
     expect(response.status).toEqual(status);
     expect(loadingFinished.encodedDataLength).toEqual(0);
 
-    // devtools 的 Time 列判的是 `duration = loadingFinished.timestamp - timing.requestTime > 0`,
-    // 算出 0 就显示 Pending。timing.requestTime 会覆盖 startTime, 所以它必须是请求开始的时刻,
-    // 给「响应头到达的时刻」的话没有响应体的响应就正好是 0
+    // devtools' Time column checks `duration = loadingFinished.timestamp - timing.requestTime > 0`
+    // and shows Pending when that's 0. timing.requestTime overrides startTime, so it has to be when
+    // the request started — using "when headers arrived" makes a bodiless response come out at exactly 0
     expect(responseReceived.response.timing.requestTime).toEqual(request.timestamp);
     expect(loadingFinished.timestamp).toBeGreaterThan(request.timestamp);
 
-    // 已经结束了, 这里不该再等
+    // It's already finished, so this must not wait
     const streamed = await inspector.sendMsg('Network.streamResourceContent', {
       requestId: request.requestId,
     });
@@ -434,8 +434,8 @@ describe('inspect local upstream test', () => {
   });
 
   test('response timing has non zero latency', async () => {
-    // receiveHeadersEnd 是相对 requestTime 的毫秒偏移, devtools 的 latency 就靠它算,
-    // 之前写死 0, Time 列的副标题永远是 0ms
+    // receiveHeadersEnd is a millisecond offset from requestTime and is what devtools computes
+    // latency from; it used to be hardcoded to 0, leaving the Time column subtitle at 0ms forever
     const [ request, responseReceived ] = await Promise.all([
       inspector.waitMethod('Network.requestWillBeSent'),
       inspector.waitMethod('Network.responseReceived'),
@@ -448,7 +448,7 @@ describe('inspect local upstream test', () => {
   });
 
   test('loadingFinished for response without content-type', async () => {
-    // status 规则的响应没有 content-type, 读响应体时不能因此抛错
+    // A status rule's response has no content-type, and reading its body must not throw over that
     await app.config.update({
       projects: [ {
         name: '',
@@ -495,8 +495,9 @@ describe('inspect local upstream test', () => {
     const responsePromise = proxyFetch('/slow');
     const request = await inspector.waitMethod('Network.requestWillBeSent');
 
-    // 响应体还没读完就来问内容, devtools 点开传输中的请求时就是这样;
-    // 这里不能回 error, 否则前端把失败的结果缓存起来, 那条请求的 Preview/Response 永远是空的
+    // Asking for the content before the body is fully read, which is what devtools does when you
+    // click a loading request. Replying with an error is not an option: the frontend caches the
+    // failure and that request's Preview/Response stays empty forever
     const streamed = inspector.sendMsg('Network.streamResourceContent', {
       requestId: request.requestId,
     });
@@ -533,8 +534,9 @@ describe('inspect local upstream test', () => {
     const log = jest.spyOn(console, 'log').mockImplementation(() => {});
     process.env.FEPROXY_CDP_DEBUG = '1';
 
-    // devtools 前端启动时会发几十条 feproxy 没实现的命令(Overlay/Debugger/Target...),
-    // 必须回协议 error, 回「成功但结果为空」会让前端直接抛 TypeError
+    // On startup the devtools frontend sends dozens of commands feproxy doesn't implement
+    // (Overlay/Debugger/Target...). They must get a protocol error — answering "success with an empty
+    // result" makes the frontend throw a TypeError
     const ret = await inspector.sendMsg('Overlay.enable');
 
     delete process.env.FEPROXY_CDP_DEBUG;
@@ -581,14 +583,14 @@ describe('inspect disabled test', () => {
       received = true;
     });
 
-    // 关闭抓包后请求依然可以正常转发
+    // Requests still get forwarded with capturing off
     const response = await fetch(upstream.url, {
       agent: util.getProxyAgent(app),
     });
 
     expect(await response.text()).toBeTruthy();
 
-    // 等一会儿, 确认没有事件推送到 devtools
+    // Wait a bit to confirm no event reached devtools
     await new Promise(resolve => setTimeout(resolve, 500));
 
     expect(received).toEqual(false);
@@ -628,7 +630,7 @@ describe('inspect disabled test', () => {
       client.on('error', reject);
     });
 
-    // 关闭抓包后 ws 依然可以正常转发
+    // ws still gets forwarded with capturing off
     expect(msg.toString()).toEqual('server msg');
 
     await new Promise(resolve => setTimeout(resolve, 500));

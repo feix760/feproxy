@@ -1,7 +1,7 @@
 import type { ProxyContext } from '../types';
 
 export default async (ctx: ProxyContext, next: () => Promise<void>) => {
-  // 关闭抓包时只做转发, 不向 devtools 推送事件
+  // With capture off, just forward and push nothing to devtools
   if (!ctx.app.config.inspect) {
     await next();
     return;

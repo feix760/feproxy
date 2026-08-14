@@ -9,8 +9,8 @@ jest.mock('../src/App', () => ({
 }));
 
 /**
- * yargs 17 的默认导出是个单例, 加载时就把 hideBin(process.argv) 存了下来,
- * 所以每个用例都要先改 process.argv 再 resetModules 重新 require。
+ * yargs 17's default export is a singleton that captures hideBin(process.argv) at load time, so
+ * every case has to set process.argv first, then resetModules and re-require.
  */
 function runCli(args: string[]) {
   const argv = process.argv;
@@ -34,7 +34,7 @@ describe('cli test', () => {
   });
 
   afterEach(() => {
-    // main() 每次都会挂一个 uncaughtException, 这里清掉避免污染其他 suite
+    // Every main() call adds an uncaughtException listener; drop them so other suites stay clean
     process.listeners('uncaughtException')
       .filter(fn => !listeners.includes(fn))
       .forEach(fn => process.removeListener('uncaughtException', fn));

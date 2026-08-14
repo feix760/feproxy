@@ -21,7 +21,7 @@ export const startApp = async (config?: Partial<ConfigData>) => {
     port: await getPort(10000 + Math.floor(Math.random() * 50000)),
     https: true,
     RC_DIR,
-    // 默认关闭代理账号验证, 需要验证的用例单独开启
+    // Auth off by default; cases that need it opt in
     auth: {
       enable: false,
       username: 'feproxy',
@@ -48,11 +48,11 @@ export const getURL = (app: FeproxyApp) => {
 };
 
 export interface TestUpstream {
-  /** https 地址, 走 CONNECT + MITM 解密后再转发 */
+  /** https address: CONNECT, MITM decryption, then forwarding */
   url: string;
-  /** http 地址, 走普通 http 代理 */
+  /** http address: plain http proxying */
   httpURL: string;
-  /** 上游证书的 DER(base64), 用来断言拿到的是上游真实证书而不是 MITM 签的那张 */
+  /** Upstream certificate as base64 DER, to assert we got the real one and not the MITM's */
   cert: string;
   close: () => Promise<void>;
 }
@@ -62,12 +62,13 @@ const upstreamBody = JSON.stringify({ upstream: 'feproxy test' });
 const onUpstreamRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
   const body = Buffer.from(upstreamBody);
   res.setHeader('content-type', 'application/json');
-  // 以前拿外网站点当上游, 响应是 gzip 的, 这里保持一致(抓包侧要解压才拿得到响应体)
+  // The public site we used to proxy replied gzipped; keep that, since the capture side then has
+  // to decompress to get a body
   if (/gzip/i.test(req.headers['accept-encoding'] as string || '')) {
     const gzipped = zlib.gzipSync(body);
     res.setHeader('content-encoding', 'gzip');
     res.setHeader('content-length', gzipped.length);
-    // HEAD 请求 node 自己会丢掉响应体, 只留响应头
+    // For HEAD, node drops the body itself and keeps only the headers
     res.end(gzipped);
     return;
   }
@@ -76,13 +77,15 @@ const onUpstreamRequest = (req: http.IncomingMessage, res: http.ServerResponse) 
 };
 
 /**
- * 起一对本地上游服务(http + https)顶替外网站点。
+ * Boot a pair of local upstream servers (http + https) to stand in for a public site.
  *
- * 以前这些用例直接抓 `https://www.baidu.com/`, GitHub Actions 的机器连它要么很慢要么连不上,
- * 于是所有走 https 的用例(包括只测规则的那些 —— MITM 前会先探一次上游证书)全线超时。
+ * These cases used to hit a real public url, which GitHub Actions machines reach slowly or not at
+ * all, timing out every https case — including the rule-only ones, since MITM probes the upstream
+ * certificate first.
  *
- * https 的证书用一份独立的根证书签发(不是 feproxy 的那两份), 这样「裸 TCP 对穿拿到的是上游真实证书」
- * 和「MITM 换成了 feproxy 签的证书」两种情况才区分得开。
+ * The https certificate is signed by its own root (neither of feproxy's two), which is what makes
+ * "raw TCP passthrough returns the real upstream certificate" distinguishable from "MITM swapped in
+ * a feproxy-signed one".
  */
 export const startUpstream = async (): Promise<TestUpstream> => {
   const dir = path.join(tmpDir, `upstream-${Math.random()}`);
@@ -91,14 +94,15 @@ export const startUpstream = async (): Promise<TestUpstream> => {
   const httpServer = http.createServer(onUpstreamRequest);
   const httpsServer = https.createServer({ key: pem.key, cert: pem.cert }, onUpstreamRequest);
 
-  // 先 listen 再取下一个端口, 免得两次 getPort 拿到同一个
+  // listen before asking for the next port, or two getPort calls can return the same one
   const httpPort = await getPort();
   await new Promise<void>(resolve => httpServer.listen(httpPort, resolve));
   const httpsPort = await getPort();
   await new Promise<void>(resolve => httpsServer.listen(httpsPort, resolve));
 
   return {
-    // 用 localhost 而不是 127.0.0.1: 证书的 subjectAltName 只有 DNS 类型, IP 过不了域名校验
+    // localhost rather than 127.0.0.1: the certificate's subjectAltName is DNS-only, so an IP
+    // fails hostname verification
     url: `https://localhost:${httpsPort}/`,
     httpURL: `http://localhost:${httpPort}/`,
     cert: pem.cert.replace(/-----[^-]+-----|\s/g, ''),
@@ -112,10 +116,10 @@ export const startUpstream = async (): Promise<TestUpstream> => {
   };
 };
 
-/** 走 feproxy 代理的 node-fetch agent, 默认不校验证书(MITM 用的是自签根证书) */
+/** node-fetch agent going through feproxy; skips cert checks by default (MITM self-signs) */
 export const getProxyAgent = (app: FeproxyApp, options?: https.AgentOptions) => {
   return proxyAgent(`http://127.0.0.1:${app.config.port}`, { rejectUnauthorized: false, ...options });
 };
 
-/** 直连 feproxy 自身的 https 端口(不走代理)时忽略自签证书 */
+/** Ignores the self-signed cert when hitting feproxy's own https port directly, without the proxy */
 export const insecureAgent = new https.Agent({ rejectUnauthorized: false });

@@ -40,7 +40,7 @@ describe('proxy websocket test', () => {
         client.send('hello');
       });
 
-      // ws 8 起 message 固定是 Buffer, 文本帧靠 isBinary 区分
+      // Since ws 8, message is always a Buffer; text frames are told apart by isBinary
       client.on('message', (message, binary) => {
         resolve({ msg: message, isBinary: binary });
       });
@@ -52,7 +52,7 @@ describe('proxy websocket test', () => {
     wss.close();
 
     expect(msg.toString()).toEqual(serverMsg);
-    // 转发不能把文本帧变成二进制帧
+    // Forwarding must not turn a text frame into a binary one
     expect(isBinary).toEqual(false);
   });
 });

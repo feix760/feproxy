@@ -1,5 +1,5 @@
 .projects-card {
-  // 「+ Add project」按在卡片下方, 和 devtools 设置页里卡片外的操作按钮一致
+  // "+ Add project" sits below the card, like the out-of-card actions on devtools' settings page
   .add-project {
     margin-top: var(--size-5);
   }
@@ -30,7 +30,7 @@
         outline-offset: calc(-1 * var(--size-1));
       }
     }
-    // 删除按钮平时不显眼, hover 到整行才浮出来 —— devtools 列表行的惯例
+    // The delete button stays hidden until the row is hovered — devtools' list-row convention
     .remove-project {
       opacity: 0;
     }
@@ -62,8 +62,8 @@
     border-top: 1px solid var(--app-color-card-divider);
   }
 
-  // devtools ui/components/input/textInput.css 的 .devtools-text-input, 高度收到 24px
-  // 以适应密集的规则列表
+  // .devtools-text-input from devtools ui/components/input/textInput.css, shrunk to 24px tall to
+  // suit the dense rule list
   .input {
     flex: 1 1 0;
     min-width: 0;
@@ -96,8 +96,8 @@
   }
 }
 
-// 绿色的新增按钮: 沿用之前定下的绿色, 但取 devtools 调色板里的 green,
-// 这样深浅色都跟着切换、也不显得是外来色
+// Green add buttons: keeps the green we settled on earlier, but takes it from devtools' palette so
+// it follows the light/dark switch and doesn't look like a foreign color
 .add-project,
 .add-rule {
   color: var(--sys-color-green);

@@ -7,7 +7,6 @@ const RULES = Symbol('RULES');
 const BLOCKED_URLS_CACHE = Symbol('BLOCKED_URLS_CACHE');
 
 export interface AuthConfig {
-  /** 是否开启代理账号验证 */
   enable: boolean;
   username: string;
   password: string;
@@ -19,7 +18,7 @@ export interface ConfigData {
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
-  /** 是否开启抓包 */
+  /** Master switch for request capturing */
   inspect: boolean;
   auth?: AuthConfig;
   projects: Project[];
@@ -67,13 +66,13 @@ class ProxyConfig {
 
   async update(config: Partial<ConfigData>) {
     const update = { ...config };
-    // 代理账号写死在 defaultConfig.ts, 不允许通过接口修改
+    // Credentials are hardcoded in defaultConfig.ts and can't be changed through the API
     delete update.auth;
     Object.assign(this, update);
 
     this.updateRules();
 
-    // 写文件前先读取已有配置, 保留其它字段, 避免覆盖丢失
+    // Read the existing file first so unrelated fields survive the write
     let rcConfig: Record<string, any> = {};
     try {
       if (fs.existsSync(this.RC_PATH)) {

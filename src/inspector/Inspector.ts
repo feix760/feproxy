@@ -102,10 +102,10 @@ class Inspector extends EventEmitter {
     }
 
     const handler = this.methods[method];
-    // 没实现的方法要回协议 error, 不能回空 result:
-    // devtools 前端启动时会发几十条命令(Debugger/DOM/Overlay/Target...),
-    // 拿到「成功但结果为空」会直接 deref 出 TypeError, 收到 error 才会走降级分支。
-    // 错误文案和 Chrome 保持一致。
+    // Unimplemented methods must get a protocol error, never an empty result: the devtools
+    // frontend fires dozens of commands at startup (Debugger/DOM/Overlay/Target...) and a
+    // "success but empty" reply makes it deref into a TypeError instead of taking its fallback
+    // path. The message matches Chrome's wording.
     if (!handler) {
       client.send({
         id,
@@ -146,9 +146,10 @@ class Inspector extends EventEmitter {
   }
 
   /**
-   * CDP 里的 timestamp 是「单调时钟的秒数」, 起点无所谓, 只有差值有意义。
-   * 用 performance.now() 而不是 Date.now(): 后者只有 1ms 精度, 本机的请求经常整个跑完还在同一毫秒,
-   * 算出来 duration 正好是 0, devtools 的 Time 列判的是 `duration > 0`, 会一直显示 Pending。
+   * CDP timestamps are seconds off a monotonic clock — the epoch is irrelevant, only deltas matter.
+   * performance.now() rather than Date.now(): the latter has 1ms resolution, and local requests
+   * often finish within the same millisecond, giving duration === 0. The devtools Time column
+   * tests `duration > 0`, so those requests would show as Pending forever.
    */
   timestamp() {
     this._timestamp = this._timestamp || performance.now();

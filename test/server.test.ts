@@ -19,7 +19,7 @@ describe('root ca test', () => {
   });
 
   test('reuse root ca on disk', () => {
-    // 第一次生成并落盘, 第二次直接读文件
+    // The first call generates and writes it, the second one just reads the file
     const created = ca.getRootCA('feproxy-test', dir);
     expect(fs.existsSync(path.join(dir, 'feproxy-test.key'))).toEqual(true);
 
@@ -32,7 +32,7 @@ describe('root ca test', () => {
 describe('server factory test', () => {
   let app: FeproxyApp;
   let factory: ServerFactory;
-  // 用自签证书(签发者不在信任链里)起的本地 https 服务
+  // A local https server using a self-signed certificate (its issuer isn't in the trust chain)
   let selfSigned: https.Server;
   let selfSignedPort: number;
 
@@ -52,7 +52,7 @@ describe('server factory test', () => {
   });
 
   test('root ca is loaded from RC_DIR', () => {
-    // startApp 时已经生成过, 这里应该是读出来的同一份
+    // startApp already generated it, so this should read back the very same one
     const another = new ServerFactory(app);
     expect(another.trustedRootCA.pem).toEqual(factory.trustedRootCA.pem);
     expect(another.untrustRootCA.pem).toEqual(factory.untrustRootCA.pem);
@@ -72,7 +72,7 @@ describe('server factory test', () => {
   });
 
   test('verify certificate error', async () => {
-    // 连不上的端口不属于证书错误, 直接抛出
+    // An unreachable port isn't a certificate error, so it's thrown
     const port = await getPort();
     await expect(factory.verifyCertificate('127.0.0.1', port))
       .rejects.toContain('ECONNREFUSED');
@@ -82,7 +82,7 @@ describe('server factory test', () => {
     const server = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
 
     expect(server).toBeInstanceOf(https.Server);
-    // 命中缓存
+    // Cache hit
     expect(await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort })).toBe(server);
   });
 
@@ -90,7 +90,7 @@ describe('server factory test', () => {
     const port = await getPort();
 
     await expect(factory.getTSLServer({ hostname: '127.0.0.1', port })).rejects.toBeTruthy();
-    // 失败的 promise 不能留在缓存里, 否则之后永远拿到失败结果
+    // A rejected promise must not stay cached, or every later call gets the same failure
     expect(factory.tslServers.peek(`:127.0.0.1:${port}`)).toBeUndefined();
     expect(factory.certs.peek(`127.0.0.1:${port}`)).toBeUndefined();
   });
@@ -99,7 +99,7 @@ describe('server factory test', () => {
     const server = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
     const close = jest.spyOn(server, 'close');
 
-    // server 实例带着原生 TLS context, 淘汰时必须 close 才能释放
+    // A server instance holds a native TLS context, which is only released by close() on evict
     factory.tslServers.clear();
     await new Promise(resolve => setImmediate(resolve));
 
@@ -109,7 +109,8 @@ describe('server factory test', () => {
   test('reuse cached certificate after server evicted', async () => {
     const verify = jest.spyOn(factory, 'verifyCertificate');
 
-    // server 被淘汰后重建, 证书还在缓存里, 不该再验一次上游证书
+    // The server is rebuilt after eviction, but the certificate is still cached, so the upstream one
+    // shouldn't be verified again
     const rebuilt = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
 
     expect(rebuilt).toBeInstanceOf(https.Server);
@@ -129,7 +130,7 @@ describe('server factory test', () => {
     const httpServer = await factory.getHTTPServer();
     const tslServer = await factory.getTSLServer({ hostname: '127.0.0.1', port: selfSignedPort });
 
-    // 以前是每个 server 一个 ws.Server, 现在共用一个 noServer 实例
+    // It used to be one ws.Server per server; now a single noServer instance is shared
     expect(app.ws.getServer()).toBe(app.ws.server);
     expect(httpServer.listenerCount('upgrade')).toEqual(1);
     expect(tslServer.listenerCount('upgrade')).toEqual(1);
@@ -155,7 +156,7 @@ describe('websocket server test', () => {
 
     wsPort = await getPort();
     wsServer = new WebSocket.Server({ port: wsPort });
-    // 上游握手响应里带一个自定义头, 转发时应该被带回客户端
+    // A custom header on the upstream handshake response should make it back to the client
     wsServer.on('headers', headers => headers.push('x-upstream: 1'));
   });
 
@@ -187,7 +188,7 @@ describe('websocket server test', () => {
   test('500 when middleware throw', async () => {
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // 上游不是 ws 服务, 握手失败, 代理插件抛错
+    // Upstream isn't a ws server, so the handshake fails and the proxy plugin throws
     const httpPort = await getPort();
     const upstream = http.createServer((req, res) => res.end('not a websocket'));
     await new Promise<void>(resolve => upstream.listen(httpPort, resolve));
@@ -220,7 +221,7 @@ describe('proxy server test', () => {
     const socket = net.connect(app.config.port, '127.0.0.1');
     await new Promise<void>(resolve => socket.once('connect', () => resolve()));
 
-    // 既不是 TLS(0x16) 也不是可打印的 HTTP 请求行
+    // Neither TLS (0x16) nor a printable HTTP request line
     socket.write(Buffer.from([ 0x01 ]));
 
     await new Promise<void>(resolve => socket.once('close', () => resolve()));

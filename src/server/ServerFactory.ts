@@ -17,12 +17,12 @@ const ignoreCertErrorCodes = [
   'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
 ];
 
-// MITM 下每个域名一个 https server, 各自带一份原生 TLS SecureContext(不算 JS heap, 只涨 RSS),
-// 所以数量要收着, 并配 ttl 让长时间没访问的域名及时掉出去
+// Under MITM there's one https server per domain, each holding a native TLS SecureContext (not on
+// the JS heap, it only grows RSS), so keep the count down and let the ttl drop idle domains.
 const SERVER_CACHE_MAX = 200;
 const SERVER_CACHE_TTL = 30 * 60 * 1000;
-// 证书只是几 KB 的 PEM 字符串, 可以比 server 缓存得更多更久:
-// server 被淘汰后重建时不用再验一次上游证书(一次网络往返) + 重新签一次名
+// Certificates are just a few KB of PEM, so they can be cached longer and wider than servers:
+// rebuilding an evicted server then skips re-probing the upstream cert (a round trip) and re-signing.
 const CERT_CACHE_MAX = 1000;
 const CERT_CACHE_TTL = 60 * 60 * 1000;
 
@@ -36,10 +36,10 @@ type CertPem = RootCA['pem'];
 
 function getRootCASuffix() {
   const hostname = os.userInfo().username
-    .replace(/\..*$/, '') // 去掉域名后缀, 如 .local
-    .replace(/[^\w-]/g, '') // 过滤文件名非法字符
+    .replace(/\..*$/, '') // strip a domain suffix such as .local
+    .replace(/[^\w-]/g, '') // drop characters illegal in filenames
     .slice(0, 10)
-    .replace(/-+$/, ''); // 去掉截断后残留的结尾连字符
+    .replace(/-+$/, ''); // drop a trailing hyphen left by the truncation
   return `-${hostname}`;
 }
 
@@ -51,7 +51,7 @@ class ServerFactory {
   trustedRootCA: RootCA;
   agent: HttpsAgent;
   httpServer: http.Server;
-  /** 缓存 promise, 让同一域名的并发请求共享一次创建过程 */
+  /** Caches the promise so concurrent requests for one domain share a single creation */
   tslServers: LRUCache<string, Promise<https.Server>>;
   certs: LRUCache<string, Promise<CertPem>>;
 
@@ -70,15 +70,15 @@ class ServerFactory {
       max: SERVER_CACHE_MAX,
       ttl: SERVER_CACHE_TTL,
       updateAgeOnGet: true,
-      // 淘汰时要 close, 否则 server 上的空闲 keep-alive 连接会一直挂着,
-      // 连带 SecureContext 等不到回收(已经升级完的 ws 隧道不受影响, 实测验证过)
+      // Close on eviction, otherwise idle keep-alive connections linger and hold the
+      // SecureContext from being collected (already-upgraded ws tunnels are unaffected, verified)
       dispose: promise => {
-        promise.then(server => server.close(), () => { /* 创建失败的条目, 已在 catch 里清理 */ });
+        promise.then(server => server.close(), () => { /* failed entry, already cleaned in catch */ });
       },
     });
 
-    // 这里故意不开 updateAgeOnGet: ttl 走绝对时间, 保证改了 ignoreCertError
-    // 或上游换了证书之后, 最多一个 ttl 就会重新探测一次
+    // updateAgeOnGet is deliberately off: an absolute ttl guarantees that after ignoreCertError
+    // changes or the upstream rotates its certificate, we re-probe within one ttl at most
     this.certs = new LRUCache({
       max: CERT_CACHE_MAX,
       ttl: CERT_CACHE_TTL,
@@ -86,7 +86,8 @@ class ServerFactory {
   }
 
   async getHTTPServer() {
-    // 明文 server 只有一个, 不进 LRU, 免得被 https server 挤掉或被 ttl 淘汰
+    // There's only one plaintext server; keep it out of the LRU so https servers or the ttl
+    // can't evict it
     if (!this.httpServer) {
       this.httpServer = http.createServer(this.app.callback());
       this.app.ws.attach(this.httpServer);
@@ -102,7 +103,7 @@ class ServerFactory {
     if (!promise) {
       promise = this.createTSLServer(hostname, port)
         .catch(err => {
-          // 失败的条目不留在缓存里, 下次请求重试
+          // Don't keep failed entries cached, so the next request retries
           if (this.tslServers.peek(key) === promise) {
             this.tslServers.delete(key);
           }
@@ -123,7 +124,7 @@ class ServerFactory {
     return server;
   }
 
-  /** 取(并缓存)某个域名的自签证书 */
+  /** Get (and cache) the self-signed certificate for a domain */
   async getCertificate(hostname: string, port: number) {
     const key = `${hostname}:${port}`;
 
@@ -131,7 +132,8 @@ class ServerFactory {
     if (!promise) {
       promise = (async () => {
         const verifyResult = await this.verifyCertificate(hostname, port);
-        // 上游证书本来就有问题的站点用 untrust 根证书签, 让浏览器保持报错
+        // Sites whose upstream certificate is already broken get signed by the untrust root,
+        // so the browser keeps erroring
         const rootCA = verifyResult === 'SUCCESS' || this.app.config.ignoreCertError
           ? this.trustedRootCA
           : this.untrustRootCA;

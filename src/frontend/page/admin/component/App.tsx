@@ -38,7 +38,7 @@ export default function App() {
       frameBorder="0"
       style={{ width: size.width + 'px', height: size.height + 'px' }}
     ></iframe>
-    {/* 和 devtools iframe 同级, 靠 z-index 浮在它上面 */}
+    {/* Sibling of the devtools iframe, floated above it by z-index */}
     <button type="button" className="open-settings tonal text-with-icon" onClick={onOpenSettings}>
       <Icon name="gear" />
       FeProxy

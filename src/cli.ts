@@ -55,7 +55,8 @@ export function main() {
       describe: 'Password of proxy basic authentication',
       default: defaultConfig.auth?.password,
     })
-    // 别名写在 option 里而不是单独 .alias()，yargs 17 后者会让 --help 丢掉 [default] 标注
+    // Aliases go inside option() rather than a separate .alias(): in yargs 17 the latter
+    // makes --help drop the [default] annotation
     .version(pkg.version)
     .alias('v', 'version')
     .describe('version', 'Output the version number')
@@ -66,7 +67,6 @@ export function main() {
     .example('feproxy --no-auth', 'Disable proxy authentication')
     .argv as Record<string, any>;
 
-  // 命令行参数映射为 config
   const config: Partial<ConfigData> = {
     port: argv.port,
     hostname: argv.hostname,

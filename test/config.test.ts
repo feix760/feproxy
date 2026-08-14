@@ -9,7 +9,7 @@ const tmpDir = path.join(__dirname, '.tmp');
 describe('ProxyConfig test', () => {
   const dirs: string[] = [];
 
-  /** 每个用例一个独立 RC_DIR, `require(config.json)` 有缓存, 不能复用 */
+  /** One RC_DIR per case: `require(config.json)` is cached, so dirs can't be reused */
   const createConfig = async (rcConfig?: string, config?: Partial<ConfigData>) => {
     const RC_DIR = path.join(tmpDir, `config-${dirs.length}-${Math.random()}`);
     dirs.push(RC_DIR);
@@ -64,18 +64,18 @@ describe('ProxyConfig test', () => {
           { enable: true, type: 'delay', match: '.*', param: { delay: 1 } },
         ] },
         { name: 'p', enable: true, rules: [
-          // 关闭的规则
+          // disabled
           { enable: false, type: 'delay', match: '.*', param: { delay: 1 } },
-          // 没有 type 的规则
+          // no type
           { enable: true, type: '', match: '.*', param: {} },
-          // 非法正则
+          // invalid regex
           { enable: true, type: 'delay', match: '(', param: { delay: 1 } },
           { enable: true, type: 'delay', match: 'a\\.com', param: { delay: 1 } },
         ] },
       ] as any,
     });
 
-    // 只剩一条有效规则 + 内置规则
+    // One valid rule left, plus the builtin one
     expect(config.getRules([]).length).toEqual(2);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
@@ -88,7 +88,7 @@ describe('ProxyConfig test', () => {
     expect(rules[0].type).toEqual('status');
     expect(rules[0].param.status).toEqual(404);
     expect((rules[0].match as RegExp).test('http://a.com/a/b.js')).toEqual(true);
-    // 同一份 blockedURLs 命中缓存
+    // The same blockedURLs hits the cache
     expect(config.getRules([ 'http://a.com/*.js' ])[0]).toBe(rules[0]);
     expect(config.getRules([])[0]).not.toBe(rules[0]);
   });
@@ -99,9 +99,9 @@ describe('ProxyConfig test', () => {
       projects: [ { name: 'p', enable: true, rules: [] } ],
       https: false,
       inspect: false,
-      // 代理账号不允许通过接口修改
+      // credentials can't be changed through the API
       auth: { enable: true, username: 'a', password: 'b' },
-      // 其它字段只在内存生效
+      // other fields only take effect in memory
       port: 1234,
     });
 

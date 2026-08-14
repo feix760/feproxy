@@ -15,11 +15,11 @@ interface RequestInfo {
   headers: Record<string, any>;
   postData: string;
   body: any;
-  /** 响应体是否已经读完 */
+  /** Whether the response body has been read to the end */
   finished: boolean;
 }
 
-/** 响应体一直不结束(SSE/长轮询)时, streamResourceContent 最多等这么久 */
+/** How long streamResourceContent waits when a body never ends (SSE / long polling) */
 const STREAM_TIMEOUT = 30000;
 
 const body2base64 = (body: any) => (
@@ -29,7 +29,7 @@ const body2base64 = (body: any) => (
 export default (inspector: Inspector): InspectorModuleResult => {
   const requestInfoPool = new LRUCache<string, RequestInfo>({ max: 1000 });
 
-  /** 在等响应体读完的 streamResourceContent 调用, 按 requestId 存 resolve 回调 */
+  /** resolve callbacks of streamResourceContent calls waiting on a body, keyed by requestId */
   const bodyWaiters = new Map<string, Set<(body: any) => void>>();
 
   const finishBody = (requestId: string, body: any) => {
@@ -64,7 +64,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
       }
       resolve('');
     }, STREAM_TIMEOUT);
-    // 别因为一条没结束的请求拖着进程不退出
+    // Don't keep the process alive just for one unfinished request
     timer.unref();
 
     const waiters = bodyWaiters.get(requestId);
@@ -87,9 +87,10 @@ export default (inspector: Inspector): InspectorModuleResult => {
     const requestId = inspector.nextId();
     ctx[INSPECTOR] = {
       requestId,
-      // 请求开始的时刻, responseReceived 的 timing.requestTime 要用它 —— devtools 拿
-      // timing.requestTime 覆盖 startTime, 给成「响应头到达的时刻」的话 duration 就只剩读响应体
-      // 的耗时, 没有响应体的响应(304/204)直接算出 0, Time 列判的是 `duration > 0`, 会显示 Pending
+      // When the request started; responseReceived's timing.requestTime needs it. devtools
+      // overwrites startTime with timing.requestTime, so passing "when headers arrived" would
+      // reduce duration to just the body read — 0 for bodiless responses (304/204), which the
+      // Time column (`duration > 0`) then shows as Pending.
       startTime: inspector.timestamp(),
     };
 
@@ -97,7 +98,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
     if (ctx.method === 'POST' && (ctx.is('urlencoded') || ctx.is('json') || ctx.is('text'))) {
       let { buffer } = await inspectorUtil.readStream(ctx.req);
       if (buffer) {
-        // POST的数据也是可以gzip的
+        // POST data can be gzipped too
         buffer = await inspectorUtil.decodeContent(buffer, ctx.get('content-encoding'));
         postData = inspectorUtil.buffer2String(buffer as Buffer) || '';
       }
@@ -124,7 +125,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
         type: 'other',
       },
       type: 'Other',
-      // POST 要先把请求体读完才发这条事件, 时间戳还是用请求真正开始的时刻
+      // POST waits for the request body before this event fires, so use the real start time
       ...ctxParams(ctx, ctx[INSPECTOR].startTime),
     });
   };
@@ -144,7 +145,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
     });
 
     const { startTime } = ctx[INSPECTOR];
-    // timing 里除了 requestTime 是秒, 其余都是相对 requestTime 的毫秒偏移
+    // In timing, requestTime is in seconds; everything else is a ms offset from it
     const receiveHeadersEnd = (inspector.timestamp() - startTime) * 1000;
 
     inspector.sendAll('Network.responseReceived', {
@@ -174,7 +175,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
           workerStart: -1,
           sendStart: 0,
           sendEnd: 0,
-          // devtools 的 latency 就是 responseReceivedTime - startTime, 之前写死 0, 一直是 0ms
+          // devtools' latency is responseReceivedTime - startTime; hardcoding 0 showed 0ms forever
           receiveHeadersEnd,
         },
         requestHeaders: inspectorUtil.headersValueToString(req.headers),
@@ -191,7 +192,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
     let body = ctx.body;
     let totalLength = 0;
 
-    // 没有响应体(HEAD、204/205/304)的直接结束
+    // Bodiless responses (HEAD, 204/205/304) finish right away
     if (!body) {
       inspector.sendAll('Network.loadingFinished', {
         encodedDataLength: totalLength,
@@ -202,7 +203,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
     }
 
     const resContentEncoding = ctx.res.getHeader('content-encoding') as string;
-    // koa 3 的 response.get 直接返回 res.getHeader(), 没设置过是 undefined(koa 2 是 '')
+    // koa 3's response.get returns res.getHeader() as-is: undefined when unset (koa 2 gave '')
     const isEventStream = `${ctx.response.get('content-type') || ''}`.includes('text/event-stream');
 
     if (body instanceof Stream) {
@@ -218,7 +219,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
           } else {
             inspector.sendAll('Network.dataReceived', {
               dataLength: chunk.length,
-              // 前端只在这个值不是 -1 时累加传输量, 不给就会算出 NaN(传输中的 Size 列会花掉)
+              // The frontend only accumulates when this isn't -1; omitting it yields NaN in Size
               encodedDataLength: chunk.length,
               ...ctxParams(ctx),
             });
@@ -261,7 +262,7 @@ export default (inspector: Inspector): InspectorModuleResult => {
     })
     .on('responseReceived', (ctx: ProxyContext) => {
       if (inspector.hasClient()) {
-        // 这个时候只响应头
+        // Only headers are available at this point
         responseReceived(ctx);
 
         readResponseBody(ctx)
@@ -292,10 +293,12 @@ export default (inspector: Inspector): InspectorModuleResult => {
         body: '',
       };
     },
-    // devtools 只对「还没传完」的请求用这个方法拿响应体(见前端 NetworkRequest.requestStreamingContent:
-    // finished 的走 getResponseBody, 否则走这里), 而且结果会被缓存 —— 回 error 的话那条请求的
-    // Preview/Response 就永远是空的。SSE 的消息视图也无条件走这条路。
-    // 我们没法按 chunk 给出解码后的内容(gzip 要整段解), 所以等响应体读完再一次性回。
+    // devtools only uses this for requests that haven't finished transferring (see the frontend's
+    // NetworkRequest.requestStreamingContent: finished ones go to getResponseBody), and it caches
+    // the result — returning an error leaves that request's Preview/Response empty forever. The
+    // SSE message view always comes through here too.
+    // We can't hand out decoded content chunk by chunk (gzip must be decoded whole), so we wait
+    // for the body to finish and answer in one shot.
     'Network.streamResourceContent': function ({ params }: InspectorMessage) {
       const { requestId } = params;
       const info = requestInfoPool.get(requestId);
@@ -324,17 +327,19 @@ export default (inspector: Inspector): InspectorModuleResult => {
         fetch(info.url, {
           method: info.method,
           headers: info.headers,
-          // node-fetch 不允许 GET/HEAD 带 body
+          // node-fetch forbids a body on GET/HEAD
           body: /^(GET|HEAD)$/i.test(info.method) ? undefined : info.postData || '',
           agent: proxyAgent(`http://127.0.0.1:${inspector.app.config.port}`, {
             rejectUnauthorized: false,
           }),
           redirect: 'manual',
-          // 回放只是让请求重新走一遍代理, 保持请求头和原请求一致, 不额外加 accept-encoding
+          // A replay just re-runs the request through the proxy: keep the original headers and
+          // don't let node-fetch add its own accept-encoding
           compress: false,
         })
           .then(res => {
-            // 响应内容不需要, 但要消费掉, 否则连接一直挂着(抓包也就收不到 loadingFinished)
+            // We don't need the body but must drain it, or the connection hangs and the capture
+            // side never sees loadingFinished
             res.body.resume();
           })
           .catch(() => {

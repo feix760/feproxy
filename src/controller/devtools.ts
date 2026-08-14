@@ -4,26 +4,28 @@ import mime from 'mime-types';
 import { DEVTOOLS_DIR } from '../util/paths';
 import type { ProxyContext } from '../types';
 
-// @chrome-devtools/inspector 是上游 devtools-frontend 的构建产物(官方 npm 包只发 TS 源码,
-// 要 depot_tools + gn/ninja 才能编出来), 整个前端就是包根的 inspector.html + 一个 chunk-*.js
+// @chrome-devtools/inspector ships upstream devtools-frontend build artifacts (the official npm
+// package only publishes TS sources, which need depot_tools + gn/ninja to build). The whole
+// frontend is inspector.html plus one chunk-*.js at the package root.
 const chromeDevTools = path.dirname(require.resolve('@chrome-devtools/inspector/inspector.html'));
 
-/** devtools 前端入口, 会被 patch 后再返回 */
+/** devtools frontend entry, patched before being served */
 const ENTRY_FILE = 'inspector.html';
 
-/** 注入到 devtools 页面里的脚本, 放在 DEVTOOLS_DIR(本地覆盖目录) */
+/** Script injected into the devtools page, lives in DEVTOOLS_DIR (the local override dir) */
 const INJECT_FILE = 'feproxy-entry.js';
 
 let entryHTML: string;
 
 /**
- * 入口 html 做两处改写:
+ * Two rewrites on the entry html:
  *
- * 1. 挂上我们自己的脚本(设置入口 + devtools 默认设置)。它要在 devtools 主 chunk 之前执行,
- *    所以插在 `<body>` 后面 —— 普通 script 在解析时同步执行, chunk 是 module(defer), 顺序稳。
- *    html 自带 CSP `script-src 'self'`, 内联脚本会被拦, 只能外链。
- * 2. 有些版本的 CSP 里 connect-src 只放开了 `ws://127.0.0.1:*`, 手机连局域网 IP 调试时
- *    ws 会被拦掉(当前锁定的版本没有这条指令, 留着是给升级兜底)。
+ * 1. Inject our own script (settings entry + devtools defaults). It must run before the devtools
+ *    main chunk, so it goes right after `<body>`: a plain script runs synchronously during
+ *    parsing while the chunk is a deferred module. It has to be external — the html's own CSP
+ *    `script-src 'self'` blocks inline scripts.
+ * 2. Some versions only allow `ws://127.0.0.1:*` in connect-src, which blocks ws when debugging
+ *    a phone over a LAN IP. The pinned version has no such directive; this is upgrade insurance.
  */
 async function getEntryHTML() {
   if (!entryHTML) {
@@ -37,7 +39,7 @@ async function getEntryHTML() {
 }
 
 const staticFile = async (ctx: ProxyContext) => {
-  // @koa/router 不再把正则的匿名捕获组写进 ctx.params, 只能从 ctx.captures 取
+  // @koa/router no longer puts anonymous regex capture groups in ctx.params, only ctx.captures
   const filename = decodeURIComponent(ctx.captures[0] || '');
 
   if (filename === ENTRY_FILE) {
@@ -46,10 +48,10 @@ const staticFile = async (ctx: ProxyContext) => {
     return;
   }
 
-  // 本地覆盖目录优先, 找不到再回落到 devtools 包
+  // Local override dir first, then fall back to the devtools package
   for (const dir of [ DEVTOOLS_DIR, chromeDevTools ]) {
     const filepath = path.join(dir, filename);
-    // filename 来自 url, 不做限制的话 `../../` 能读到包外的任意文件
+    // filename comes from the url; unchecked, `../../` would read any file outside the package
     if (!filepath.startsWith(dir + path.sep)) {
       return;
     }

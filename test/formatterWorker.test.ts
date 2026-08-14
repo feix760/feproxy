@@ -12,8 +12,8 @@ interface WorkerScope {
 }
 
 /**
- * worker 是给浏览器用的资源文件(不走 webpack 打包), 这里造一个假的 worker 作用域直接跑它,
- * 只需要 self.onmessage / self.postMessage 两个东西
+ * The worker is a browser asset (not bundled by webpack), so we fake a worker scope and run it
+ * directly; only self.onmessage / self.postMessage are needed.
  */
 const createWorker = (): WorkerScope => {
   const source = fs.readFileSync(WORKER_PATH, 'utf8');
@@ -27,7 +27,7 @@ const createWorker = (): WorkerScope => {
   return self;
 };
 
-/** 按 FormatterWorkerPool 的协议发一条消息, 返回 worker 回的内容 */
+/** Send one message in FormatterWorkerPool's protocol and return what the worker replies */
 const runTask = (worker: WorkerScope, method: string, params?: any) => {
   worker.postMessage.mockClear();
   worker.onmessage({ data: { method, params } });
@@ -44,7 +44,7 @@ describe('formatter worker test', () => {
   });
 
   test('sends workerReady on startup', () => {
-    // 少了这条 devtools 的 WorkerWrapper 永远不 resolve, 所有格式化任务都会挂住
+    // Without it devtools' WorkerWrapper never resolves and every format task hangs
     expect(worker.postMessage).toHaveBeenCalledWith('workerReady');
     expect(typeof worker.onmessage).toEqual('function');
   });
@@ -67,18 +67,19 @@ describe('formatter worker test', () => {
       '  "c": {',
       '    "d": "x"',
       '  },',
-      // 空的对象/数组不撑成两行
+      // Empty objects/arrays don't get expanded onto two lines
       '  "e": {},',
       '  "f": []',
       '}',
     ].join('\n'));
 
-    // 只动空白: 去掉空白后的内容必须和原来一模一样
+    // Whitespace only: strip it and the content must be identical to the input
     expect(result.content.replace(/\s/g, '')).toEqual(content.replace(/\s/g, ''));
   });
 
   test('keeps number literals as they are', () => {
-    // JSON.parse + stringify 会改写精度和指数写法, 抓包看到的内容不能和实际响应不一样
+    // JSON.parse + stringify rewrites precision and exponent notation; what's captured has to match
+    // the actual response
     const content = '{"big":12345678901234567890,"exp":1E+2,"small":0.10}';
     const result = runTask(worker, 'format', {
       mimeType: 'application/json',
@@ -113,11 +114,11 @@ describe('formatter worker test', () => {
     });
 
     expect(mapping.original.length).toEqual(mapping.formatted.length);
-    // devtools 用 upperBound 查这两个数组, 必须递增
+    // devtools looks these two arrays up with upperBound, so they must be ascending
     const ascending = (list: number[]) => list.every((item, index) => !index || item > list[index - 1]);
     expect(ascending(mapping.original)).toEqual(true);
     expect(ascending(mapping.formatted)).toEqual(true);
-    // 每一对 offset 指向的是同一个 token
+    // Each offset pair points at the same token
     mapping.original.forEach((offset: number, index: number) => {
       expect(formatted[mapping.formatted[index]]).toEqual(content[offset]);
     });
@@ -135,7 +136,7 @@ describe('formatter worker test', () => {
   });
 
   test('returns content as is for broken json', () => {
-    // JSONP、报错页面之类, content-type 是 json 但内容不是
+    // JSONP, error pages and the like: content-type says json but the body isn't
     const content = 'callback({"a":1})';
     const result = runTask(worker, 'format', {
       mimeType: 'application/json',
@@ -153,7 +154,7 @@ describe('formatter worker test', () => {
 
   test('answers the rest of the protocol', () => {
     expect(runTask(worker, 'javaScriptSubstitute', { content: 'var a = 1;' })).toEqual('var a = 1;');
-    // 分块任务, 不给结束标记调用方的回调收不到
+    // Chunked task: without the last-chunk marker the caller's callback never fires
     expect(runTask(worker, 'parseCSS', { content: '' })).toEqual({ isLastChunk: true, chunk: [] });
     expect(runTask(worker, 'javaScriptScopeTree', { content: '' })).toEqual(null);
     expect(runTask(worker, 'not-exists')).toEqual(null);

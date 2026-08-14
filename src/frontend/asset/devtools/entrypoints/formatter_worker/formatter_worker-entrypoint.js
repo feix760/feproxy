@@ -1,27 +1,29 @@
 /* eslint-disable */
 
-// devtools 的格式化 worker。上游把它编译成独立入口(路径写死在 devtools 主 chunk 里:
-// `new URL('../../entrypoints/formatter_worker/formatter_worker-entrypoint.js', import.meta.url)`,
-// 相对 /devtools/chunk-*.js 算下来就是站点根上的 /entrypoints/...), 但 @chrome-devtools/inspector
-// 只发了主 chunk, 这个文件不在包里。
+// devtools' formatter worker. Upstream compiles it into a standalone entry whose path is baked
+// into the devtools main chunk (`new URL('../../entrypoints/formatter_worker/
+// formatter_worker-entrypoint.js', import.meta.url)`, which resolves against /devtools/chunk-*.js
+// to /entrypoints/... at the site root), but @chrome-devtools/inspector only ships the main chunk.
 //
-// 少了它的后果比「不能格式化」严重得多: devtools 的 WorkerWrapper 在 worker 加载失败时只
-// console.error, 既不 reject 也不超时, 于是 postMessage 挂在一个永远不 settle 的 promise 上。
-// 而 SourceFrame 对压缩过的内容(isMinified: 有一行超过 500 字符)会自动 pretty print,
-// `await this.setPretty(true)` 就此卡死, setContent 再也不会执行 —— 表现是点开请求后
-// Response 面板只剩一个空编辑器, 没有报错也没有异常(Preview 走的是 iframe, 所以看着正常)。
+// Missing it is far worse than "can't format": when a worker fails to load, devtools'
+// WorkerWrapper only console.errors — it neither rejects nor times out — so postMessage hangs on
+// a promise that never settles. SourceFrame auto pretty-prints minified content (isMinified: any
+// line over 500 chars), so `await this.setPretty(true)` deadlocks and setContent never runs. The
+// symptom is an empty editor in the Response panel with no error at all (Preview uses an iframe,
+// so it still looks fine).
 //
-// 这里按 FormatterWorkerPool 的协议实现一个最小版本: JSON 真的重排, 其余原样返回。
+// This is a minimal implementation of the FormatterWorkerPool protocol: JSON really is reindented,
+// everything else comes back untouched.
 
 (function () {
-  /** 内容没变时的位置映射: offset 一一对应 */
+  /** Position mapping for unchanged content: offsets map one to one */
   var IDENTITY_MAPPING = { original: [ 0 ], formatted: [ 0 ] };
 
   var PUNCTUATION = '{}[]:,';
 
   /**
-   * 只做词法切分, 不校验语法(合法性交给外面的 JSON.parse)。
-   * 返回 null 表示出现了 JSON 里不该有的字符。
+   * Lexical split only, no syntax checking — validity is the caller's JSON.parse to decide.
+   * Returns null when a character that can't appear in JSON shows up.
    */
   function tokenize(content) {
     var tokens = [];
@@ -30,7 +32,7 @@
     while (i < content.length) {
       var ch = content[i];
 
-      // 原有的空白全部丢掉, 由下面重新排版
+      // Drop all existing whitespace; it gets laid out again below
       if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
         i++;
         continue;
@@ -50,7 +52,7 @@
       } else if (PUNCTUATION.indexOf(ch) !== -1) {
         i++;
       } else if (/[-\w.+]/.test(ch)) {
-        // 数字和 true/false/null
+        // numbers and true/false/null
         while (i < content.length && /[-\w.+]/.test(content[i])) {
           i++;
         }
@@ -65,9 +67,11 @@
   }
 
   /**
-   * 重排 JSON 的缩进。只动空白, 字面量原样搬过去 —— 用 JSON.parse + stringify 会改写数字
-   * (精度、指数写法), 抓包工具里看到的内容不能和实际响应不一样。
-   * 顺手记下每个 token 的新旧 offset, devtools 靠这个映射在原始/格式化视图之间换算位置。
+   * Reindent JSON. Only whitespace changes; literals are copied verbatim — JSON.parse +
+   * stringify would rewrite numbers (precision, exponent notation), and a capture tool must not
+   * show content that differs from the actual response.
+   * Old and new offsets of every token are recorded along the way; devtools uses that mapping to
+   * translate positions between the original and formatted views.
    */
   function reindentJSON(content, indentString) {
     var tokens = tokenize(content);
@@ -87,7 +91,7 @@
 
       if (text === '}' || text === ']') {
         depth--;
-        // 空的对象/数组保持 `{}`, 不撑成两行
+        // Keep empty objects/arrays as `{}` instead of spreading them over two lines
         newline = previous !== '{' && previous !== '[';
       }
 
@@ -105,7 +109,7 @@
 
       if (text === '{' || text === '[') {
         depth++;
-        // 下一个 token 就是闭括号的话, 上面那个分支会把它改回 false
+        // If the next token is the closing bracket, the branch above flips this back to false
         newline = true;
       } else if (text === ',') {
         newline = true;
@@ -121,9 +125,10 @@
   }
 
   /**
-   * devtools 只对这几种类型开格式化按钮: application/javascript、application/json、
-   * application/manifest+json、text/css、text/html、text/javascript。
-   * 这里只处理 JSON, 其余原样返回(内容照样能显示, 只是 `{}` 按钮点了没变化)。
+   * devtools only offers the format button for these types: application/javascript,
+   * application/json, application/manifest+json, text/css, text/html, text/javascript.
+   * We only handle JSON and return everything else untouched (it still displays fine, the `{}`
+   * button just does nothing).
    */
   function format(params) {
     var content = params.content || '';
@@ -137,7 +142,7 @@
           return result;
         }
       } catch (err) {
-        // 不是合法 JSON(JSONP、报错页面...), 别动它
+        // Not valid JSON (JSONP, an error page...) — leave it alone
       }
     }
 
@@ -156,15 +161,15 @@
         self.postMessage(params.content || '');
         break;
       case 'parseCSS':
-        // 分块任务, 必须给个结束标记, 否则调用方的回调收不到
+        // A chunked task: without an end marker the caller's callback never fires
         self.postMessage({ isLastChunk: true, chunk: [] });
         break;
       default:
-        // javaScriptScopeTree 等: 调用方对 null 有降级分支
+        // javaScriptScopeTree and friends: callers have a fallback path for null
         self.postMessage(null);
     }
   };
 
-  // 少了这句 WorkerWrapper 的 promise 不会 resolve
+  // Without this the WorkerWrapper promise never resolves
   self.postMessage('workerReady');
 })();

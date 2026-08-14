@@ -22,15 +22,17 @@ class WebSocketServer {
   }
 
   /**
-   * 唯一的 ws.Server 实例, 用 noServer 模式, 由 `attach()` 挂到各个 http/https server 上。
-   * MITM 下 https server 是按域名建的, 以前每个 server 都 new 一个 ws.Server,
-   * 抓 N 个域名就堆 N 个实例, 且 `this.server` 每次被后一个覆盖。
+   * The single ws.Server instance, in noServer mode, hooked onto each http/https server by
+   * `attach()`. Under MITM https servers are created per domain; the old code new'd a ws.Server
+   * per server, piling up one instance per captured domain while `this.server` kept being
+   * overwritten by the latest one.
    */
   getServer() {
     if (!this.server) {
       this.server = new ws.Server({
         noServer: true,
-        // clientTracking 只为提供 wss.clients, 这里没人用, 关掉免得握着所有活连接
+        // clientTracking only exists to populate wss.clients, which nobody reads here —
+        // off, so it doesn't hold on to every live connection
         clientTracking: false,
         verifyClient: this.verifyClient.bind(this) as any,
       });
@@ -42,8 +44,8 @@ class WebSocketServer {
   }
 
   /**
-   * 把共享的 ws.Server 接到一个 http/https server 上,
-   * 和 ws 自己的 `options.server` 模式做的事一样(handleUpgrade 里照样走 verifyClient)
+   * Hook the shared ws.Server onto one http/https server — the same thing ws' own
+   * `options.server` mode does (handleUpgrade still runs verifyClient).
    */
   attach(server: http.Server | https.Server) {
     const wsServer = this.getServer();

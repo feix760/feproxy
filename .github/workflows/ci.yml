@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # 本地开发用的是 pnpm 11, 这里锁住大版本保持一致
+      # Local development uses pnpm 11; pin the major to keep them in sync
       - uses: pnpm/action-setup@v4
         with:
           version: 11
@@ -27,7 +27,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
 
-      # prepare 会跑 pnpm run build, 静态资源相关用例依赖 lib/public
+      # prepare runs pnpm run build; the static-asset cases need lib/public
       - run: pnpm install --frozen-lockfile
 
       # lint + build + jest

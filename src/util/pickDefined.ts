@@ -1,7 +1,4 @@
-/**
- * 剔除对象里值为 undefined 的字段
- * 用于合并配置时避免用 undefined 覆盖掉默认值
- */
+/** Drop undefined fields, so merging configs can't override defaults with undefined */
 export default function pickDefined<T extends Record<string, any>>(obj?: T): Partial<T> {
   const result: Partial<T> = {};
 

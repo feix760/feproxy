@@ -26,7 +26,7 @@ describe('proxy auth test', () => {
     });
   };
 
-  // 直连 feproxy 自身端口(不走代理)
+  // Hits feproxy's own port directly, without the proxy
   const getSiteURL = (https = false) => {
     return `${https ? 'https' : 'http'}://127.0.0.1:${app.config.port}/getConfig`;
   };

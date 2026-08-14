@@ -1,8 +1,8 @@
 /**
  * @jest-environment <rootDir>/test/util/jsdomEnvironment.js
  */
-// 只测 UI 的规则编解码与交互, 不需要真的起服务,
-// 所以把 setConfig 换成同步 dispatch 的替身, 顺带能造出保存失败的分支。
+// Only the UI's rule encode/decode and interactions are under test, so no real server is needed:
+// setConfig is replaced by a synchronous dispatching stub, which also lets us fake a failed save.
 const mockSetConfig = jest.fn();
 let mockSetConfigResult: () => Promise<any> = () => Promise.resolve({});
 
@@ -50,7 +50,7 @@ describe('project rule display test', () => {
   const getProjects = (): Project[] => (store.getState() as any).config.projects;
   const query = (selector: string) => container.querySelectorAll(selector);
   const toInputs = () => Array.from(query('.rule-item .input[data-placeholder="to"]'));
-  // jsdom 没实现 innerText, 手动挂一个再触发 focusout(React 17+ 的 onBlur 监听的是它)
+  // jsdom has no innerText: set one by hand, then fire focusout (what React 17+ onBlur listens to)
   const editBlur = (el: Element, value: string) => {
     (el as any).innerText = value;
     fireEvent.focusOut(el);

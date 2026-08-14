@@ -39,7 +39,7 @@ class ProxyServer {
   onceData(socket: net.Socket, cb: (buffer: Buffer) => Promise<void>) {
     return new Promise<void>((resolve, reject) => {
       socket.once('error', reject);
-      // 没设过 encoding, data 事件必然是 Buffer
+      // No encoding is set, so data is always a Buffer
       socket.once('data', (buffer: Buffer) => {
         socket.removeListener('error', reject);
         // `socekt.pause|unshift` should be called in data event handler, could not has `await` etc.
@@ -54,8 +54,9 @@ class ProxyServer {
     return this.onceData(socket, async buffer => {
       const raw = buffer.toString();
       const isTLS = buffer[0] === 22;
-      // 代理账号验证, 通过后该隧道上的请求不再重复验证
-      // 只验证代理请求, 直连 feproxy 自身站点(含 TLS 首包)不需要凭据
+      // Authenticate once per connection; requests inside the tunnel aren't re-checked.
+      // Only proxy requests need credentials — direct hits on feproxy's own site (TLS first
+      // packet included) don't.
       if (proxyAuth.isProxyRaw(raw) && !this.verifyAuth(proxyAuth.getRawProxyAuthorization(raw))) {
         socket.end(proxyAuth.getProxyAuthRequiredRaw());
         return;
@@ -89,7 +90,7 @@ class ProxyServer {
     });
   }
 
-  /** 校验代理账号, 未开启验证时直接通过 */
+  /** Verify proxy credentials; always passes when auth is disabled */
   verifyAuth(credentials: string) {
     const { auth } = this.app.config;
     if (!proxyAuth.needAuth(auth)) {

@@ -1,10 +1,11 @@
-// jsdom 环境缺了一批 node 侧的 web 全局:
-// - koa 3 的 response.body setter 里直接 `val instanceof ReadableStream / Blob / Response`,
-//   标识符不存在会抛 ReferenceError, 于是 jsdom 用例里任何响应都 500;
-// - koa-body 8 依赖链上的 formidable → @paralleldrive/cuid2 → @noble/hashes
-//   在模块加载期就要 TextEncoder。
-// 这里从 node realm 把缺失的全局补给 jsdom, 只补没有的, 不动 fetch
-// (test/../action/config.ts 引的 isomorphic-fetch 要靠 global.fetch 为空来装自己那套)。
+// The jsdom environment is missing a set of web globals that exist on the node side:
+// - koa 3's response.body setter does `val instanceof ReadableStream / Blob / Response` directly,
+//   and a missing identifier throws a ReferenceError, so every response in a jsdom case 500s;
+// - formidable → @paralleldrive/cuid2 → @noble/hashes, on koa-body 8's dependency chain, needs
+//   TextEncoder at module load time.
+// We copy the missing globals over from the node realm — only the absent ones, and never fetch
+// (isomorphic-fetch, pulled in by action/config.ts, relies on global.fetch being empty to install
+// its own).
 const JSDOMEnvironment = require('jest-environment-jsdom').default;
 
 const NODE_GLOBALS = [
@@ -19,9 +20,9 @@ const NODE_GLOBALS = [
 ];
 
 class FeproxyJSDOMEnvironment extends JSDOMEnvironment {
-  // jsdom 环境默认只带 'browser' 导出条件, 而 ws 8 的 exports 里 browser 指向一个
-  // "ws does not work in the browser" 的桩, 用例里起的 feproxy 服务会直接崩,
-  // 所以这里换成 node 侧条件(前端代码走 webpack 打包, 不依赖 jest 的解析条件)。
+  // The jsdom environment defaults to the 'browser' export condition, but ws 8 maps browser to a
+  // "ws does not work in the browser" stub, which crashes the feproxy server a case boots. Switch
+  // to the node conditions (frontend code is bundled by webpack and doesn't rely on jest's).
   exportConditions() {
     return [ 'node', 'require', 'default' ];
   }

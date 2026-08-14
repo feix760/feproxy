@@ -122,7 +122,7 @@ describe('site router test', () => {
   });
 
   test('toggle settings switch', async () => {
-    // https 打开时才有 ignoreCertError 开关
+    // The ignoreCertError switch only shows up while https is on
     await act(() => page.store.dispatch(setConfig({ https: true })));
 
     const switches = container.querySelectorAll('.settings-item .enable');
@@ -142,7 +142,7 @@ describe('site router test', () => {
       fireEvent.click(container.querySelectorAll('.settings-item .enable')[0]);
     });
     expect(page.store.getState().config.https).toEqual(false);
-    // 关掉 https 后 ignoreCertError 开关消失
+    // Turning https off makes the ignoreCertError switch disappear
     expect(container.querySelectorAll('.settings-item .enable').length).toEqual(2);
 
     await act(() => page.store.dispatch(setConfig({ inspect: true })));

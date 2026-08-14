@@ -18,7 +18,7 @@ import type { FeproxyApp } from './types';
 export default (startConfig?: Partial<ConfigData>): FeproxyApp => {
   const app = new Koa() as FeproxyApp;
 
-  // 合并时剔除 undefined 字段，避免覆盖掉默认配置
+  // Drop undefined fields so they don't override the defaults
   app.config = new ProxyConfig({
     ...defaultConfig,
     ...pickDefined(startConfig),

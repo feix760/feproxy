@@ -11,7 +11,7 @@ const websocket: ProxyPluginFn = async ctx => {
 
   const reqHeaders = {};
   Object.keys(ctx.req.headers).forEach(key => {
-    // 代理验证头不应转发给上游
+    // Never forward the proxy credentials upstream
     if (!/^sec-websocket-/i.test(key) && key.toLowerCase() !== 'proxy-authorization') {
       reqHeaders[key] = ctx.req.headers[key];
     }
@@ -20,7 +20,8 @@ const websocket: ProxyPluginFn = async ctx => {
     headers: reqHeaders,
   });
 
-  // ws 8 起 message 事件固定给 Buffer, 文本帧要靠 isBinary 判断, 否则转发会变成二进制帧
+  // Since ws 8 'message' always gives a Buffer, so text frames are told apart by isBinary —
+  // without it forwarding would turn them into binary frames
   let hangList: [WebSocket.RawData, boolean][] = [];
   res.once('close', onclose)
     .once('error', onclose)

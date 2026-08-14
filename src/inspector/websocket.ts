@@ -4,7 +4,7 @@ import * as inspectorUtil from '../util/inspectorUtil';
 import type { InspectorModuleResult, ProxyContext } from '../types';
 import type Inspector from './Inspector';
 
-// ws 8 起帧内容都是 Buffer, devtools 的 payloadData 需要字符串
+// Since ws 8 frame contents are always Buffers, but devtools' payloadData wants a string
 const payload = (msg: any) => (Buffer.isBuffer(msg) ? msg.toString() : msg);
 
 export default (inspector: Inspector): InspectorModuleResult => {

@@ -39,7 +39,7 @@ describe('proxy plugin branch test', () => {
         return;
       }
       if (req.url === '/no-content-type') {
-        // 上游不给 content-type, koa 不应该自己补一个
+        // Upstream sends no content-type, and koa must not invent one
         res.writeHead(200);
         res.end('no-content-type');
         return;
@@ -90,8 +90,8 @@ describe('proxy plugin branch test', () => {
   });
 
   test('keep upstream content-length for head request', async () => {
-    // HEAD 的响应头要和 GET 一致, 所以这条链路上不能设 ctx.body —— koa 的 body setter
-    // 会按 body 的长度改写 content-length, 设成 '' 的话这里就变成 0 了
+    // A HEAD response's headers must match GET's, so this path can't set ctx.body: koa's body setter
+    // rewrites content-length from the body length, and '' would turn this into 0
     const response = await proxyFetch('/with-length', { method: 'HEAD' });
 
     expect(response.headers.get('content-length')).toEqual('2');
@@ -114,7 +114,7 @@ describe('proxy plugin branch test', () => {
   });
 
   test('500 when upstream is unreachable', async () => {
-    // 没有监听的端口
+    // A port nobody listens on
     const port = await getPort();
     await setRule({ type: 'host', param: { port } });
 

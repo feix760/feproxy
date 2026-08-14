@@ -10,7 +10,7 @@ export const crt = async (ctx: ProxyContext) => {
   const crtFile = path.join(ctx.app.config.RC_DIR, ServerFactory.rootCA);
   if (await fs.pathExists(crtFile)) {
     ctx.set('content-type', 'application/octet-stream');
-    // 指定下载文件名, 避免浏览器根据 url 命名
+    // Set the filename explicitly, otherwise the browser names it after the url
     ctx.set('content-disposition', `attachment; filename="${ServerFactory.rootCA}"`);
     ctx.body = await fs.readFile(crtFile);
   }
@@ -35,7 +35,7 @@ export const log = async (ctx: ProxyContext) => {
 };
 
 export const setConfig = async (ctx: ProxyContext) => {
-  // koa-body 把 body 标成 JsonValue, 这里只可能是 setConfig 的对象
+  // koa-body types body as JsonValue; here it can only be a setConfig object
   await ctx.app.config.update(ctx.request.body as Partial<ConfigData>);
 
   ctx.body = ctx.app.config;
@@ -47,7 +47,7 @@ export const getConfig = async (ctx: ProxyContext) => {
   ctx.body = {
     ...config,
 
-    // feproxy 只用得上网络面板, panel 参数让 devtools 默认就停在 Network
+    // We only use the network panel; the panel param makes devtools open on Network
     devtoolsURL: `/devtools/inspector.html?ws=${ip.address()}:${config.port}/ws&panel=network`,
   };
 };

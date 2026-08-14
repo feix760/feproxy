@@ -17,7 +17,7 @@ import pickDefined from '../src/util/pickDefined';
 import createProxyAgent from '../src/util/proxyAgent';
 import * as proxyAuth from '../src/util/proxyAuth';
 
-/** 造一个只实现被测方法的 ctx 替身 */
+/** A ctx stub implementing only what the methods under test use */
 function mockCtx(options: { headers?: Record<string, string>; method?: string } = {}) {
   const headers = options.headers || {};
   const responseHeaders: Record<string, string> = {};
@@ -47,12 +47,12 @@ describe('inspectorUtil test', () => {
   });
 
   test('buffer2String', () => {
-    // 短文本探测不出编码, 用够长的文本才能命中 utf-8/gbk
+    // Short text isn't enough to detect a charset; utf-8/gbk only get recognized on longer input
     const text = '这是一段用于编码检测的中文文本，需要足够长才能被正确识别。'.repeat(5);
     expect(buffer2String(Buffer.from('hello world'))).toEqual('hello world');
     expect(buffer2String(Buffer.from(text))).toEqual(text);
     expect(buffer2String(iconv.encode(text, 'gbk'))).toEqual(text);
-    // 非 buffer 入参走 catch 分支
+    // A non-buffer argument takes the catch branch
     expect(buffer2String(null)).toEqual(null);
   });
 
@@ -87,7 +87,7 @@ describe('inspectorUtil test', () => {
 
     test('no encoding', async () => {
       expect(await decodeContent(raw)).toEqual(raw);
-      // 非 Buffer 原样返回
+      // Anything that isn't a Buffer comes back untouched
       expect(await decodeContent('text', 'gzip')).toEqual('text');
     });
 
@@ -227,7 +227,7 @@ describe('proxyAgent test', () => {
 
     expect(httpsAgent).not.toBe(httpAgent);
     expect((httpsAgent as any).rejectUnauthorized).toEqual(true);
-    // 同一个 url 拿到的是同一个实例
+    // Same protocol, same instance
     expect(getAgent(new URL('https://b.com/'))).toBe(httpsAgent);
   });
 
@@ -251,16 +251,16 @@ describe('proxyAuth test', () => {
 
   test('verifyCredentials', () => {
     expect(proxyAuth.verifyCredentials(basic('feproxy', 'feproxy'), auth)).toEqual(true);
-    // 大小写与多余空格不影响
+    // Case and extra spaces don't matter
     expect(proxyAuth.verifyCredentials(` basic  ${basic('feproxy', 'feproxy').slice(6)}`, auth)).toEqual(true);
     expect(proxyAuth.verifyCredentials(basic('feproxy', 'wrong'), auth)).toEqual(false);
     expect(proxyAuth.verifyCredentials(basic('wrong', 'feproxy'), auth)).toEqual(false);
     expect(proxyAuth.verifyCredentials('', auth)).toEqual(false);
     expect(proxyAuth.verifyCredentials(null, auth)).toEqual(false);
     expect(proxyAuth.verifyCredentials('Bearer token', auth)).toEqual(false);
-    // 没有冒号分隔
+    // No colon separator
     expect(proxyAuth.verifyCredentials(`Basic ${Buffer.from('feproxy').toString('base64')}`, auth)).toEqual(false);
-    // 空密码
+    // Empty password
     expect(proxyAuth.verifyCredentials(basic('feproxy', ''), { ...auth, password: '' })).toEqual(true);
   });
 
@@ -269,7 +269,7 @@ describe('proxyAuth test', () => {
     expect(proxyAuth.isProxyRaw('connect a.com:443 HTTP/1.1\r\n')).toEqual(true);
     expect(proxyAuth.isProxyRaw('GET http://a.com/a HTTP/1.1\r\n')).toEqual(true);
     expect(proxyAuth.isProxyRaw('POST https://a.com/a HTTP/1.1\r\n')).toEqual(true);
-    // 直连自身站点
+    // A direct hit on our own site
     expect(proxyAuth.isProxyRaw('GET /getConfig HTTP/1.1\r\n')).toEqual(false);
     expect(proxyAuth.isProxyRaw('\x16\x03\x01')).toEqual(false);
   });

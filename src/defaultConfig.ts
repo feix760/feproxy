@@ -7,7 +7,7 @@ const defaultConfig: ConfigData = {
 
   ignoreCertError: false,
 
-  // 是否开启抓包(向 devtools 推送请求/响应事件), 关闭后仅做转发
+  // Push request/response events to devtools; when off, only forward
   inspect: true,
 
   RC_DIR: path.join(os.homedir(), '.feproxy'),
@@ -16,7 +16,7 @@ const defaultConfig: ConfigData = {
 
   port: '8888',
 
-  // 代理账号验证, 账号写死在此处, 不支持通过 admin 页面/接口修改, 可以通过 feproxy 命令传入
+  // Credentials are hardcoded here: not changeable via the admin page or API, only via CLI args
   auth: {
     enable: false,
     username: 'feproxy',

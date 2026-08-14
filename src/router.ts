@@ -27,7 +27,7 @@ export default (app: FeproxyApp) => {
 
   // ------ site ----------
   // site url is normal
-  // 自身站点不做账号验证, auth 只作用于代理流量(在 socket 层验证)
+  // Our own site is never authenticated; auth applies to proxied traffic only (at the socket layer)
   router.get('/feproxy.crt', site.crt as any);
   router.get('/log', site.log as any);
   router.get('/getConfig', site.getConfig as any);
@@ -37,8 +37,8 @@ export default (app: FeproxyApp) => {
   router.get('/ws', devtools.ws as any);
   // devtools static files
   router.get(/\/devtools\/(.+)/, devtools.static as any);
-  // devtools 里 worker 的 url 是相对主 chunk 算的(`../../entrypoints/...`), 落在站点根上,
-  // 文件同样从 devtools 目录取(见 asset/devtools/entrypoints/)
+  // devtools resolves worker urls relative to the main chunk (`../../entrypoints/...`), which
+  // lands at the site root; serve those from the devtools dir too (see asset/devtools/entrypoints/)
   router.get(/^\/(entrypoints\/.+)$/, devtools.static as any);
 
   // use routes to app

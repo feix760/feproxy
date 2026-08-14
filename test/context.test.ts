@@ -5,14 +5,14 @@ import extendContext from '../src/extend/context';
 import type { ProxyContext } from '../src/types';
 
 interface CtxOptions {
-  /** 请求行里的路径, MITM 之后只有 /path */
+  /** Path from the request line; after MITM it's only /path */
   url: string;
   host?: string;
-  /** ProxyServer 打在 server 上的标记, 直连自身站点时为空 */
+  /** The marker ProxyServer puts on the server; empty for direct hits on our own site */
   proxy?: { hostname: string; port: number };
-  /** 是否是解密后的 tls 连接 */
+  /** Whether this is a decrypted tls connection */
   encrypted?: boolean;
-  /** ws 隧道 */
+  /** ws tunnel */
   websocket?: boolean;
 }
 
@@ -62,7 +62,7 @@ describe('context url test', () => {
   });
 
   test('keep absolute url', () => {
-    // http 代理的请求行本来就是绝对地址
+    // An http proxy's request line is already absolute
     expect(createCtx({
       url: 'https://a.com/a/b',
       proxy: { hostname: 'b.com', port: 443 },
@@ -75,7 +75,7 @@ describe('context url test', () => {
   });
 
   test('replace host with header host', () => {
-    // 请求行的 host 与 header 不一致时以 header 为准
+    // When request line and header disagree on the host, the header wins
     expect(createCtx({
       url: 'http://a.com/a/b',
       host: 'b.com',

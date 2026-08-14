@@ -1,7 +1,8 @@
-// devtools 的 20x20 Material Symbols 图标, path 数据直接取自
-// node_modules/@chrome-devtools/inspector/{cross,plus,bin,chevron-down,chevron-right,gear}.svg。
-// 内联而不是引 icon font, 是为了跟 devtools 用同一套图形并能用 currentColor 上色。
-// path 数据是原封不动抄来的, 折行只会让它没法和上游 svg 对比, 所以这一段关掉 max-len。
+// devtools' 20x20 Material Symbols icons; path data taken straight from
+// node_modules/@chrome-devtools/inspector/{cross,plus,bin,chevron-down,chevron-right,gear}.svg.
+// Inlined rather than pulled from an icon font, so we share devtools' shapes and can tint them
+// with currentColor. The path data is copied verbatim — wrapping it would only make it
+// impossible to diff against the upstream svg, hence max-len is off for this block.
 /* eslint-disable max-len */
 const ICONS: Record<string, { d: string; evenOdd?: boolean }[]> = {
   cross: [ { d: 'M6.062 15 5 13.938 8.938 10 5 6.062 6.062 5 10 8.938 13.938 5 15 6.062 11.062 10 15 13.938 13.938 15 10 11.062z' } ],
