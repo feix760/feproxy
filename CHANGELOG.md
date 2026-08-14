@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.9.0](https://github.com/feix760/feproxy/compare/v3.8.0...v3.9.0) (2026-08-14)
+
+
+### Features
+
+* add icon ([106e779](https://github.com/feix760/feproxy/commit/106e779bcd2a2c1309498891549209feeb818279))
+* use en ([e88eb9c](https://github.com/feix760/feproxy/commit/e88eb9c3c31342a055d2b056c0fa3160b813179a))
+
 ## [3.8.0](https://github.com/feix760/feproxy/compare/v3.7.0...v3.8.0) (2026-08-13)
 
 
