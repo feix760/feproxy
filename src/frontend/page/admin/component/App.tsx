@@ -46,7 +46,8 @@ export default function App() {
     <div className="dialog" style={{ display: showSettings ? '' : 'none' }}>
       <div className="dialog-content">
         <div className="settings-window-title">
-          <Icon name="gear" />
+          {/* Served from lib/public by koaStatic, so no webpack asset import is involved */}
+          <img className="app-logo" src="/favicon.svg" alt="" />
           FeProxy Settings
           <button type="button"
             className="close-button icon"

@@ -8,6 +8,7 @@
     "build": "npm run build:ts && npm run build:web",
     "build:ts": "tsc",
     "build:web": "cross-env NODE_ENV=production webpack",
+    "build:favicon": "node scripts/buildFavicon.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json",
     "lint": "eslint .",
     "lint-fix": "eslint --cache --fix .",

@@ -106,6 +106,8 @@ Multi-page webpack: each `src/frontend/page/*/index.tsx` directory is one chunk 
 
 The UI shows each rule as a single `to` string (`delay://1000`, `host://1.2.3.4:8080`, `file:///path`); `toDisplayRule`/`toWireRule` in `component/Project.tsx` convert to and from the backend's `{type, param}`.
 
+The site icon is a devtools-waterfall badge: `src/frontend/asset/favicon.svg` is the master (also the logo shown on the landing page and in the settings dialog title, referenced by URL rather than imported through webpack, since `asset/` is served from the site root). `favicon.ico` is generated from it by `npm run build:favicon`, which packs 16/32/48 PNGs into an ICO; the 16px entry is drawn separately in `scripts/favicon-16.svg` because the master's detail doesn't survive the downscale. That script needs `rsvg-convert` (`brew install librsvg`) and so is **deliberately outside `npm run build`** — run it by hand and commit the `.ico` after editing either svg.
+
 ## Conventions
 
 - **Write everything in English**: code comments, UI copy, log/error messages, docs (including this file), and commit messages. Some older code still has Chinese comments — translate them as you touch that code, but don't do a standalone sweep.

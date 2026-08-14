@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="FeProxy">
+  <!--
+    The 16x16 entry of favicon.ico, drawn on its own grid instead of downscaling
+    src/frontend/asset/favicon.svg. At 16px the master's three arrows plus its ring node collapse into
+    mush: an arrowhead only gets ~1px of definition and the node disappears into the middle bar. So
+    this one drops to two arrows and lets the seam carry the proxy on its own, with every edge on a
+    whole pixel.
+
+    Same idea, same palette; only the detail count changes. Keep the two in sync by eye when either
+    changes, and regenerate with scripts/buildFavicon.js.
+  -->
+  <defs>
+    <linearGradient id="feproxy-badge" x1="0" y1="0" x2="16" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1b6ef3"/>
+      <stop offset="1" stop-color="#0b57d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" rx="3.5" fill="url(#feproxy-badge)"/>
+  <path d="M7.5 2v12" stroke="#fff" stroke-opacity=".65" stroke-width="1"/>
+  <g fill="#fff">
+    <rect x="2" y="4" width="6" height="2"/>
+    <path d="m7 2.5 4 2.5-4 2.5z"/>
+    <rect x="4" y="10" width="6" height="2"/>
+    <path d="m9 8.5 4 2.5-4 2.5z"/>
+  </g>
+</svg>
