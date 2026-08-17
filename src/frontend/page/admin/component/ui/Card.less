@@ -1,0 +1,36 @@
+// devtools ui/components/cards/card.css: the heading sits above the card, content is a rounded box
+// with a shadow, every direct child carries its own padding, and all but the first are separated by
+// a 1px hairline.
+// The width deliberately departs from devtools' standard --size-35 (576px): the Projects card holds
+// a table-like editor (enable + match + to + delete), and at 576px each input is left with ~200px,
+// far too narrow to read a long regex or url. All cards share one width to line up on the left.
+.settings-card {
+  width: 100%;
+  max-width: var(--size-48);
+  min-width: var(--size-31);
+  padding: 0 var(--size-5);
+  box-sizing: border-box;
+
+  .card-heading {
+    margin-bottom: var(--size-5);
+    font-size: var(--typescale-body2-size);
+    font-weight: var(--typeface-weight-medium);
+    line-height: var(--typescale-body2-line-height);
+    color: var(--sys-color-on-surface);
+    white-space: nowrap;
+  }
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--sys-shape-corner-small);
+    background: var(--app-color-card-background);
+    box-shadow: var(--sys-elevation-level2);
+
+    > * {
+      padding: var(--size-4) var(--size-6);
+    }
+    > *:not(:first-child) {
+      border-top: 1px solid var(--app-color-card-divider);
+    }
+  }
+}

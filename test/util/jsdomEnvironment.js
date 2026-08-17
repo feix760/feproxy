@@ -4,8 +4,8 @@
 // - formidable → @paralleldrive/cuid2 → @noble/hashes, on koa-body 8's dependency chain, needs
 //   TextEncoder at module load time.
 // We copy the missing globals over from the node realm — only the absent ones, and never fetch
-// (isomorphic-fetch, pulled in by action/config.ts, relies on global.fetch being empty to install
-// its own).
+// (isomorphic-fetch, pulled in by config/configApi.ts, relies on global.fetch being empty to
+// install its own).
 const JSDOMEnvironment = require('jest-environment-jsdom').default;
 
 const NODE_GLOBALS = [

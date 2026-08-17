@@ -1,53 +1,60 @@
 /**
  * @jest-environment <rootDir>/test/util/jsdomEnvironment.js
  */
-// Only the UI's rule editing interactions are under test, so no real server is needed: setConfig is
-// replaced by a synchronous dispatching stub, which also lets us fake a failed save.
-const mockSetConfig = jest.fn();
-let mockSetConfigResult: () => Promise<any> = () => Promise.resolve({});
+// Only the UI's rule editing interactions are under test, so no real server is needed: the network
+// layer is replaced by a stub that records what would have been saved and hands back a promise the
+// case controls. It stays pending by default — merging the server's answer back is another case's
+// business, and leaving it out keeps every assertion here synchronous.
+const mockSaveConfig = jest.fn();
+let mockSaveResult: () => Promise<any> = () => new Promise(() => {});
 
-jest.mock('../src/frontend/page/admin/action/config', () => ({
-  UPDATE_CONFIG: 'UPDATE_CONFIG',
-  getConfig: () => () => Promise.resolve({}),
-  setConfig: (data: any) => (dispatch: any) => {
-    mockSetConfig(data);
-    dispatch({ type: 'UPDATE_CONFIG', data });
-    return mockSetConfigResult();
+jest.mock('../src/frontend/page/admin/config/configApi', () => ({
+  fetchConfig: () => Promise.resolve({}),
+  saveConfig: (data: any) => {
+    mockSaveConfig(data);
+    return mockSaveResult();
   },
+  flushConfig: () => Promise.resolve(),
 }));
 
 import { act, fireEvent, render } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import ProjectList from '../src/frontend/page/admin/component/Project';
-import createStore from '../src/frontend/page/admin/createStore';
-import type { Project, Rule, RuleParam } from '../src/frontend/page/admin/types';
+import ProjectList from '../src/frontend/page/admin/component/ProjectList';
+import { ConfigProvider, useConfig, useConfigActions } from '../src/frontend/page/admin/config/ConfigContext';
+import type { ConfigState, Project, Rule, RuleParam } from '../src/frontend/page/admin/types';
 
 describe('project rule input test', () => {
-  let store: ReturnType<typeof createStore>;
   let container: HTMLElement;
+  let config: ConfigState;
+  let update: (patch: Partial<ConfigState>) => Promise<ConfigState>;
+
+  // Reads the config and its update() from inside the tree, the way a component would, so a case
+  // can seed state and assert on it without a store handle
+  function Probe() {
+    config = useConfig();
+    ({ update } = useConfigActions());
+    return null;
+  }
 
   const setProjects = (rules: Partial<Rule>[]) => {
+    const project = {
+      id: 'p1',
+      name: 'project',
+      enable: true,
+      rules: rules.map((rule, index) => ({
+        id: `r${index}`,
+        enable: true,
+        match: '.*',
+        ...rule,
+      })),
+    } as Project;
+
     act(() => {
-      store.dispatch({
-        type: 'UPDATE_CONFIG',
-        data: {
-          projects: [ {
-            id: 'p1',
-            name: 'project',
-            enable: true,
-            rules: rules.map((rule, index) => ({
-              id: `r${index}`,
-              enable: true,
-              match: '.*',
-              ...rule,
-            })),
-          } ],
-        },
-      } as any);
+      // Seeding goes through update() like any edit would; whether the save works is another case
+      update({ projects: [ project ] }).catch(() => {});
     });
   };
 
-  const getProjects = (): Project[] => (store.getState() as any).config.projects;
+  const getProjects = (): Project[] => config.projects;
   const getRule = (index = 0): Rule => getProjects()[0].rules[index];
   const query = (selector: string) => container.querySelectorAll(selector);
   const row = (index = 0) => query('.rule-item')[index];
@@ -59,21 +66,16 @@ describe('project rule input test', () => {
     fireEvent.change(el, { target: { value } });
     fireEvent.blur(el);
   };
-  // jsdom has no innerText: set one by hand, then fire focusout (what React 17+ onBlur listens to)
-  const editBlur = (el: Element, value: string) => {
-    (el as any).innerText = value;
-    fireEvent.focusOut(el);
-  };
 
   beforeEach(() => {
     localStorage.clear();
-    mockSetConfig.mockClear();
-    mockSetConfigResult = () => Promise.resolve({});
-    store = createStore();
+    mockSaveConfig.mockClear();
+    mockSaveResult = () => new Promise(() => {});
     ({ container } = render(
-      <Provider store={ store }>
+      <ConfigProvider>
+        <Probe />
         <ProjectList />
-      </Provider>,
+      </ConfigProvider>,
     ));
   });
 
@@ -140,11 +142,11 @@ describe('project rule input test', () => {
 
   test('skip an unchanged field', () => {
     setProjects([ { type: 'file', param: { path: '/a/b.js' } } ]);
-    mockSetConfig.mockClear();
+    mockSaveConfig.mockClear();
 
     edit(field('path'), '/a/b.js');
 
-    expect(mockSetConfig).not.toHaveBeenCalled();
+    expect(mockSaveConfig).not.toHaveBeenCalled();
   });
 
   test('pick the protocol first, which clears the param', () => {
@@ -176,10 +178,10 @@ describe('project rule input test', () => {
     setProjects([ { type: 'header', param: { 'x-a': '1' } } ]);
 
     // An unnamed pair can't be sent anywhere, so adding a row alone saves nothing
-    mockSetConfig.mockClear();
+    mockSaveConfig.mockClear();
     fireEvent.click(row().querySelector('.add-pair'));
     expect(row().querySelectorAll('.rule-pair').length).toEqual(2);
-    expect(mockSetConfig).not.toHaveBeenCalled();
+    expect(mockSaveConfig).not.toHaveBeenCalled();
 
     const names = row().querySelectorAll('input[name="name"]');
     const values = row().querySelectorAll('input[name="value"]');
@@ -211,7 +213,7 @@ describe('project rule input test', () => {
   test('edit project name and rule match', () => {
     setProjects([ { type: 'delay', param: { delay: 1 } } ]);
 
-    editBlur(query('.project-item .name')[0], '  renamed  ');
+    edit(query('.project-item .name')[0] as HTMLInputElement, '  renamed  ');
     expect(getProjects()[0].name).toEqual('renamed');
 
     edit(field('match'), 'a\\.com');
@@ -247,7 +249,7 @@ describe('project rule input test', () => {
 
     fireEvent.click(query('.add-project')[0]);
 
-    const saved = mockSetConfig.mock.calls.pop()[0].projects;
+    const saved = mockSaveConfig.mock.calls.pop()[0].projects;
     expect(saved.length).toEqual(2);
     expect(saved[1]).toEqual({ id: expect.anything(), name: '', enable: true, rules: [] });
     expect(JSON.parse(localStorage.getItem('p_opens'))[saved[1].id]).toEqual(true);
@@ -268,13 +270,12 @@ describe('project rule input test', () => {
   test('alert when save failed', async () => {
     const alertFn = jest.fn();
     (window as any).alert = alertFn;
-    mockSetConfigResult = () => Promise.reject(new Error('save error'));
+    mockSaveResult = () => Promise.reject(new Error('save error'));
 
     setProjects([ { type: 'delay', param: { delay: 1 } } ]);
     fireEvent.click(query('.remove-project')[0]);
 
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve));
     expect(alertFn).toHaveBeenCalledWith('save error');
   });
 });
-

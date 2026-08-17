@@ -5,15 +5,15 @@
 // exists and then blows up; it is only a node<10 fallback and unused here.
 jest.mock('brotli', () => ({ decompress: () => Buffer.alloc(0) }));
 
-import { act, fireEvent, render } from '@testing-library/react';
-import Page from '../src/frontend/page/admin';
-import { getConfig, setConfig } from '../src/frontend/page/admin/action/config';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import App from '../src/frontend/page/admin/component/App';
+import { ConfigProvider } from '../src/frontend/page/admin/config/ConfigContext';
+import { fetchConfig, flushConfig } from '../src/frontend/page/admin/config/configApi';
 import type { FeproxyApp } from '../src/types';
 import * as util from './util/util';
 
 describe('site router test', () => {
   let app: FeproxyApp;
-  let page: InstanceType<typeof Page>;
   let container: HTMLElement;
   const projects = [
     {
@@ -47,21 +47,31 @@ describe('site router test', () => {
     app.config.update({
       projects,
     });
-
-    page = new Page();
-
-    await page.loadData();
   });
 
-  // RTL unmounts after every test, so remount each time; the store is shared so
-  // state carries over between cases just like the previous single-mount setup.
-  beforeEach(() => {
-    ({ container } = render(page.render()));
+  // RTL unmounts after every test, so remount each time. App reads the config on mount, so every
+  // case starts from whatever the server holds — including what the case before it saved.
+  beforeEach(async () => {
+    ({ container } = render(
+      <ConfigProvider>
+        <App />
+      </ConfigProvider>,
+    ));
+
+    // The iframe is what waits for the config, so its src appearing means the load landed
+    await waitFor(() => expect(container.querySelector('.devtools')).toBeTruthy());
+  });
+
+  // Saves are batched and opening the panel kicks off a reload, so let both round trips land while
+  // the tree is still mounted — otherwise their state updates escape the case that caused them
+  afterEach(async () => {
+    await act(async () => {
+      await flushConfig();
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
   });
 
   afterAll(async () => {
-    // flush the pending debounced setConfig so no request lands after teardown
-    await page.store.dispatch(setConfig({}));
     await util.stopApp(app);
   });
 
@@ -97,7 +107,7 @@ describe('site router test', () => {
     const dialog = container.querySelector('.dialog') as HTMLElement;
     expect(dialog.style.display).toEqual('none');
 
-    await act(async () => {
+    act(() => {
       click('.open-settings');
     });
     expect(dialog.style.display).toEqual('');
@@ -122,41 +132,40 @@ describe('site router test', () => {
   });
 
   test('toggle settings switch', async () => {
-    // The ignoreCertError switch only shows up while https is on
-    await act(() => page.store.dispatch(setConfig({ https: true })));
+    // https is on by default, so the ignoreCertError switch is there from the start
+    const switches = () => container.querySelectorAll('.settings-item .enable');
+    expect(switches().length).toEqual(3);
 
-    const switches = container.querySelectorAll('.settings-item .enable');
-    expect(switches.length).toEqual(3);
+    fireEvent.click(switches()[1]);
+    expect((switches()[1] as HTMLInputElement).checked).toEqual(true);
 
-    await act(async () => {
-      fireEvent.click(switches[1]);
-    });
-    expect(page.store.getState().config.ignoreCertError).toEqual(true);
+    fireEvent.click(switches()[2]);
+    expect((switches()[2] as HTMLInputElement).checked).toEqual(false);
 
-    await act(async () => {
-      fireEvent.click(container.querySelectorAll('.settings-item .enable')[2]);
-    });
-    expect(page.store.getState().config.inspect).toEqual(false);
-
-    await act(async () => {
-      fireEvent.click(container.querySelectorAll('.settings-item .enable')[0]);
-    });
-    expect(page.store.getState().config.https).toEqual(false);
+    fireEvent.click(switches()[0]);
     // Turning https off makes the ignoreCertError switch disappear
-    expect(container.querySelectorAll('.settings-item .enable').length).toEqual(2);
+    expect(switches().length).toEqual(2);
 
-    await act(() => page.store.dispatch(setConfig({ inspect: true })));
+    await act(async () => {
+      await flushConfig();
+    });
+    expect(app.config.https).toEqual(false);
+    expect(app.config.ignoreCertError).toEqual(true);
+    expect(app.config.inspect).toEqual(false);
   });
 
   test('set config', async () => {
-    await act(() => page.store.dispatch(setConfig({
-      https: false,
-    })));
+    // Loaded from the server, so it shows what the previous case turned off
+    const https = container.querySelector('.settings-item .enable') as HTMLInputElement;
+    expect(https.checked).toEqual(false);
 
-    expect(app.config.https).toEqual(false);
+    fireEvent.click(https);
+    await act(async () => {
+      await flushConfig();
+    });
 
-    await act(() => page.store.dispatch(getConfig()));
-
-    expect(page.store.getState().config.https).toEqual(false);
+    expect(app.config.https).toEqual(true);
+    // ...and the server hands the same value back
+    expect((await fetchConfig()).https).toEqual(true);
   });
 });

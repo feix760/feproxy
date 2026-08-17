@@ -1,0 +1,20 @@
+.rule-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--size-4);
+  padding: var(--size-3) var(--size-4);
+
+  & ~ .rule-item {
+    border-top: 1px solid var(--app-color-card-divider);
+  }
+
+  // The delete button stays hidden until the row is hovered — devtools' list-row convention
+  .remove-rule {
+    opacity: 0;
+  }
+  &:hover .remove-rule,
+  .remove-rule:focus-visible {
+    opacity: 1;
+  }
+}

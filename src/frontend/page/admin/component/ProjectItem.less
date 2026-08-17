@@ -1,0 +1,31 @@
+.project-item {
+  .header {
+    display: flex;
+    align-items: center;
+    gap: var(--size-3);
+
+    .name {
+      flex: auto;
+      min-width: 0;
+      margin: 0 var(--size-2);
+    }
+    // The delete button stays hidden until the row is hovered — devtools' list-row convention
+    .remove-project {
+      opacity: 0;
+    }
+    &:hover .remove-project,
+    .remove-project:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  .content {
+    margin: var(--size-3) 0 var(--size-2) var(--size-11);
+
+    ul:not(:empty) {
+      margin-bottom: var(--size-3);
+      border: 1px solid var(--app-color-card-divider);
+      border-radius: var(--sys-shape-corner-extra-small);
+    }
+  }
+}

@@ -1,0 +1,31 @@
+// Free-form params (header names/values) stack vertically inside the argument area, so the row grows
+// downwards instead of squeezing every pair into one line.
+.rule-pairs {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-3);
+
+  .rule-pair {
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    gap: var(--size-3);
+
+    .pair-name {
+      flex: 1 1 0;
+    }
+    .pair-value {
+      flex: 2 1 0;
+    }
+    .remove-pair {
+      opacity: 0;
+    }
+    &:hover .remove-pair,
+    .remove-pair:focus-visible {
+      opacity: 1;
+    }
+  }
+}

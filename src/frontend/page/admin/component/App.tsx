@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ChangeEvent } from 'react';
 import './App.less';
-import { getConfig, setConfig } from '../action/config';
-import { useAppDispatch, useAppSelector } from '../hooks';
-import Icon from './Icon';
-import Project from './Project';
+import { useConfig, useConfigActions } from '../config/ConfigContext';
+import SettingsDialog from './SettingsDialog';
+import Icon from './ui/Icon';
 
+/** Full-screen devtools iframe with the settings overlay floating above it. */
 export default function App() {
-  const dispatch = useAppDispatch();
-  const config = useAppSelector(state => state.config);
+  const { devtoolsURL } = useConfig();
+  const { reload } = useConfigActions();
 
   const [ size, setSize ] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [ showSettings, setShowSettings ] = useState(false);
@@ -19,86 +18,33 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // The provider starts out empty, so the first thing the page does is read the config; a failure
+  // just leaves the panel blank, there is nothing to fall back to
+  useEffect(() => {
+    reload().catch(() => {});
+  }, [ reload ]);
+
   const onOpenSettings = useCallback(() => {
-    dispatch(getConfig());
+    // The config may have changed elsewhere (another tab, a CLI restart) while the panel was closed
+    reload().catch(() => {});
     setShowSettings(true);
-  }, [ dispatch ]);
+  }, [ reload ]);
 
   const onCloseSettings = useCallback(() => setShowSettings(false), []);
 
-  const setSwitch = useCallback((prop: string) => (e: ChangeEvent<HTMLInputElement>) => {
-    dispatch(setConfig({
-      [prop]: e.target.checked,
-    }));
-  }, [ dispatch ]);
-
   return <>
-    <iframe className="devtools"
-      src={config.devtoolsURL}
+    {/* Held back until the config is in: mounting the iframe without a src would load about:blank
+        first and boot devtools twice */}
+    { devtoolsURL && <iframe className="devtools"
+      src={ devtoolsURL }
       frameBorder="0"
       style={{ width: size.width + 'px', height: size.height + 'px' }}
-    ></iframe>
+    ></iframe> }
     {/* Sibling of the devtools iframe, floated above it by z-index */}
-    <button type="button" className="open-settings tonal text-with-icon" onClick={onOpenSettings}>
+    <button type="button" className="open-settings tonal text-with-icon" onClick={ onOpenSettings }>
       <Icon name="gear" />
       FeProxy
     </button>
-    <div className="dialog" style={{ display: showSettings ? '' : 'none' }}>
-      <div className="dialog-content">
-        <div className="settings-window-title">
-          {/* Served from lib/public by koaStatic, so no webpack asset import is involved */}
-          <img className="app-logo" src="/favicon.svg" alt="" />
-          FeProxy Settings
-          <button type="button"
-            className="close-button icon"
-            title="Close"
-            onClick={onCloseSettings}
-          >
-            <Icon name="cross" />
-          </button>
-        </div>
-        <div className="settings-card-container-wrapper">
-          <div className="settings-card-container">
-            <div className="settings-card">
-              <div className="card-heading">Preferences</div>
-              <div className="card-content">
-                <label className="settings-item">
-                  <input
-                    className="enable"
-                    type="checkbox"
-                    checked={ config.https || false }
-                    onChange={ setSwitch('https') }
-                  />
-                  https
-                </label>
-                {
-                  config.https && (
-                    <label className="settings-item">
-                      <input
-                        className="enable"
-                        type="checkbox"
-                        checked={ config.ignoreCertError || false }
-                        onChange={ setSwitch('ignoreCertError') }
-                      />
-                      ignore certificate error
-                    </label>
-                  )
-                }
-                <label className="settings-item">
-                  <input
-                    className="enable"
-                    type="checkbox"
-                    checked={ config.inspect || false }
-                    onChange={ setSwitch('inspect') }
-                  />
-                  inspect
-                </label>
-              </div>
-            </div>
-            <Project />
-          </div>
-        </div>
-      </div>
-    </div>
+    <SettingsDialog open={ showSettings } onClose={ onCloseSettings } />
   </>;
 }

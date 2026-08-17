@@ -1,0 +1,62 @@
+.dialog {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+  // = devtools' .settings-window-main
+  &-content {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    border-radius: var(--sys-shape-corner-small);
+    background: var(--sys-color-cdt-base-container);
+    color: var(--sys-color-on-surface);
+    box-shadow: var(--sys-elevation-level2);
+    overflow: hidden;
+  }
+}
+
+// .settings-window-title from devtools' settingsScreen.css: 20px title with a leading icon
+.settings-window-title {
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin: var(--size-8) var(--size-7);
+  font-size: var(--typescale-headline5-size);
+  color: var(--sys-color-on-surface);
+
+  // The logo takes devtools' leading-icon slot, so it keeps the same 20px box
+  > .app-logo {
+    flex: none;
+    width: var(--size-9);
+    height: var(--size-9);
+    margin-right: var(--size-4);
+  }
+  .close-button {
+    margin-left: auto;
+  }
+}
+
+// 6px here plus the card's own 8px padding adds up to the title's 14px left inset, so cards and
+// title share one left edge
+.settings-card-container-wrapper {
+  flex: auto;
+  padding: 0 var(--size-4) var(--size-8);
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
+}
+
+.settings-card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-9);
+}

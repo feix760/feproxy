@@ -1,5 +1,6 @@
-// A subset of Chrome DevTools' design tokens, so the admin page matches the devtools iframe next
-// to it.
+// Everything that makes the admin page look like the devtools iframe next to it: a subset of Chrome
+// DevTools' design tokens, then the base element styles built from them (button, text input,
+// checkbox), all copied from devtools rather than designed here.
 //
 // None of these values were chosen by us: sizes, type, radii and shadows are copied from
 // chunk-f16spr11.css of the pinned @chrome-devtools/inspector, and colors are resolved all the way
@@ -94,5 +95,171 @@
     // surface2 = color-mix(in srgb, primary80 8%, neutral10), precomputed
     --app-color-card-background: #2a2c31;
     --app-color-card-divider: rgba(255, 255, 255, 0.1);
+  }
+}
+
+body {
+  overflow-y: hidden;
+  background: var(--sys-color-cdt-base-container);
+}
+
+// devtools' base button, copied from ui/components/buttons/button.css in @chrome-devtools/inspector.
+// Variants stack as classes: .text / .outlined / .tonal / .icon (icon only) / .text-with-icon.
+// hover and active paint a ::before overlay instead of changing background, so variants that
+// already have a background (tonal, outlined) can share one set of state colors — devtools does
+// exactly this.
+button {
+  --hover-layer-color: var(--sys-color-state-hover-on-subtle);
+  --active-layer-color: var(--sys-color-state-ripple-neutral-on-subtle);
+  --button-height: var(--size-11);
+  --button-width: fit-content;
+  --icon-size: var(--size-9);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--button-height);
+  width: var(--button-width);
+  padding: 0 var(--size-6);
+  border: 0;
+  border-radius: var(--sys-shape-corner-full);
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  font-family: var(--default-font-family);
+  font-size: var(--typescale-body4-size);
+  font-weight: var(--typeface-weight-medium);
+  line-height: var(--typescale-body4-line-height);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: transparent;
+  }
+  &:hover::before {
+    background: var(--hover-layer-color);
+  }
+  &:active::before {
+    background: var(--active-layer-color);
+  }
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: var(--size-2);
+  }
+
+  .devtools-icon {
+    // The icon has to sit above the ::before overlay
+    position: relative;
+    flex: none;
+    width: var(--icon-size);
+    height: var(--icon-size);
+  }
+
+  &.text {
+    color: var(--sys-color-primary);
+  }
+
+  &.outlined {
+    border: 1px solid var(--sys-color-tonal-outline);
+    color: var(--sys-color-primary);
+  }
+
+  &.tonal {
+    background: var(--sys-color-tonal-container);
+    color: var(--sys-color-on-tonal-container);
+  }
+
+  &.text-with-icon {
+    padding-left: var(--size-4);
+    .devtools-icon {
+      margin-right: var(--size-2);
+    }
+  }
+
+  // Icon-only button: 26x26 circle around a 20px icon
+  &.icon {
+    --button-height: 26px;
+    --button-width: 26px;
+
+    padding: 0;
+    overflow: hidden;
+    color: var(--sys-color-on-surface-subtle);
+    &:hover {
+      color: var(--sys-color-on-surface);
+    }
+    &:focus-visible {
+      outline-offset: calc(-1 * var(--size-2));
+    }
+    &.micro {
+      --button-height: var(--size-8);
+      --button-width: var(--size-8);
+
+      border-radius: var(--sys-shape-corner-extra-small);
+    }
+  }
+}
+
+// .devtools-text-input from devtools ui/components/input/textInput.css, shrunk to 24px tall to suit
+// the dense rule list: transparent until hovered, so a form of them doesn't look like a grid of boxes
+.text-input {
+  min-width: 0;
+  height: var(--size-11);
+  padding: 0 var(--size-4);
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  font-size: var(--typescale-body4-size);
+  line-height: var(--typescale-body4-line-height);
+  text-overflow: ellipsis;
+
+  &::placeholder {
+    color: var(--sys-color-token-subtle);
+  }
+  &:hover {
+    border-color: var(--sys-color-neutral-outline);
+  }
+  &:focus {
+    border-color: transparent;
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: calc(-1 * var(--size-1));
+    text-overflow: clip;
+  }
+}
+
+// devtools' native checkbox: 12x12 with accent-color, plus a 24x24 round ::after overlay on hover
+input[type=checkbox] {
+  position: relative;
+  flex: none;
+  // A checkbox is a replaced element: without display: flex its ::after never renders and the
+  // hover overlay disappears
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: var(--sys-color-primary-bright);
+  cursor: pointer;
+
+  &:hover::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border-radius: var(--sys-shape-corner-full);
+    background: var(--sys-color-state-hover-on-subtle);
+  }
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: var(--size-2);
   }
 }

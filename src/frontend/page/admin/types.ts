@@ -16,7 +16,6 @@ export interface Project {
 }
 
 export interface ConfigState {
-  activeProjects: Project[];
   projects: Project[];
   https?: boolean;
   ignoreCertError?: boolean;
