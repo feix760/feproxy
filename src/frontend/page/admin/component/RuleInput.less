@@ -1,0 +1,84 @@
+// The rule row reads as "match → protocol → protocol arguments", so match and the argument area
+// share the free space while the protocol select keeps its natural width.
+.rule-match {
+  flex: 1 1 0;
+}
+
+.rule-param {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: var(--size-3);
+}
+
+.rule-field {
+  flex: 1 1 0;
+
+  // Ports and status codes never need more than a few characters
+  &.narrow {
+    flex: none;
+    width: 56px;
+  }
+}
+
+// Native select styled like devtools' toolbar dropdowns (ui/legacy/inspectorCommon.css): a hairline
+// box that only fills in on hover, so a rule row stays as quiet as the text inputs next to it.
+.rule-type {
+  flex: none;
+  height: var(--size-11);
+  padding: 0 var(--size-3);
+  border: 1px solid var(--sys-color-neutral-outline);
+  border-radius: var(--sys-shape-corner-extra-small);
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sys-color-state-hover-on-subtle);
+  }
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: calc(-1 * var(--size-1));
+  }
+  // No protocol picked yet: the empty option reads as a placeholder, not as a value
+  &.placeholder {
+    color: var(--sys-color-token-subtle);
+  }
+}
+
+// Free-form params (header names/values) stack vertically inside the argument area, so the row grows
+// downwards instead of squeezing every pair into one line.
+.rule-pairs {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--size-3);
+
+  .rule-pair {
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+    gap: var(--size-3);
+
+    .pair-name {
+      flex: 1 1 0;
+    }
+    .pair-value {
+      flex: 2 1 0;
+    }
+    .remove-pair {
+      opacity: 0;
+    }
+    &:hover .remove-pair,
+    .remove-pair:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  .add-pair {
+    color: var(--sys-color-green);
+  }
+}
+

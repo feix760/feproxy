@@ -68,22 +68,24 @@ other FeProxy endpoints stay open. Credentials cannot be changed from the inspec
 
 Rules live in projects, editable on the inspect page (settings button, bottom right) or in
 `~/.feproxy/config.json`. Each rule matches `match` (a case-insensitive regexp) against the
-full request URL and applies one action, written in the UI as a single `to` string:
+full request URL and applies one action: pick the protocol first, then fill in the fields
+that protocol asks for.
 
-| `to` | Effect |
-| --- | --- |
-| `http://127.0.0.1:3000/$1` | Forward the request to another URL |
-| `host://127.0.0.1:3000` | Keep the URL, send it to this host/port |
-| `file:///path/to/dist/$1` | Serve a local file |
-| `status://404` | Reply with a status code (`status://302?location=...` to redirect) |
-| `delay://1000` | Delay the request by N ms |
-| `header://?cache-control=no-cache` | Override response headers |
+| Protocol | Fields | Effect |
+| --- | --- | --- |
+| `http(s)://` | url | Forward the request elsewhere, e.g. `http://127.0.0.1:3000/$1` |
+| `host://` | hostname, port | Keep the URL, send it to this host/port |
+| `file://` | path | Serve a local file, e.g. `/path/to/dist/$1` |
+| `status://` | code, location | Reply with a status code (`302` + location to redirect) |
+| `delay://` | milliseconds | Delay the request by N ms |
+| `header://` | name/value pairs | Override response headers |
 
 `$1`, `$2`… are back-references to the capture groups of `match`. Rules of different types
 stack (`delay` + `header` + a terminal `http`/`file`/`status`); for the same type only the
 first match wins.
 
-On the wire (and in `config.json`) a rule is `{ enable, match, type, param }`:
+In `config.json` a rule is `{ enable, match, type, param }`, where `type` is the protocol and
+`param` holds those same fields:
 
 ```json
 {
