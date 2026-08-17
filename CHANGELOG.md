@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.10.1](https://github.com/feix760/feproxy/compare/v3.10.0...v3.10.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* 协议显示去除 :// ([324a9b2](https://github.com/feix760/feproxy/commit/324a9b2f399479ec7ee902c6e58a8c9e739d3c22))
+
 ## [3.10.0](https://github.com/feix760/feproxy/compare/v3.9.0...v3.10.0) (2026-08-17)
 
 
