@@ -20,22 +20,20 @@ const ICONS: Record<string, { d: string; evenOdd?: boolean }[]> = {
 export type IconName = keyof typeof ICONS;
 
 export default function Icon({ name }: { name: IconName }) {
-  return (
-    <svg className="devtools-icon"
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      focusable="false"
-    >
-      { ICONS[name].map(path => (
-        <path key={ path.d.slice(0, 12) }
-          d={ path.d }
-          fill="currentColor"
-          fillRule={ path.evenOdd ? 'evenodd' : undefined }
-          clipRule={ path.evenOdd ? 'evenodd' : undefined }
-        />
-      )) }
-    </svg>
-  );
+  return <svg className="devtools-icon"
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    aria-hidden="true"
+    focusable="false"
+  >
+    { ICONS[name].map(path => (
+      <path key={ path.d.slice(0, 12) }
+        d={ path.d }
+        fill="currentColor"
+        fillRule={ path.evenOdd ? 'evenodd' : undefined }
+        clipRule={ path.evenOdd ? 'evenodd' : undefined }
+      />
+    )) }
+  </svg>;
 }

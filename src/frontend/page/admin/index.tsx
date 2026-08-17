@@ -16,11 +16,9 @@ export default class Page {
   }
 
   render() {
-    return (
-      <Provider store={ this.store }>
-        <App />
-      </Provider>
-    );
+    return <Provider store={ this.store }>
+      <App />
+    </Provider>;
   }
 }
 

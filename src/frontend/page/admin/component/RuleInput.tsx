@@ -83,22 +83,20 @@ function TextField({ className, value, placeholder, onCommit, name }: TextFieldP
     }
   };
 
-  return (
-    <input className={ className }
-      type="text"
-      name={ name }
-      value={ draft }
-      placeholder={ placeholder }
-      spellCheck={ false }
-      onChange={ e => setDraft(e.target.value) }
-      onBlur={ commit }
-      onKeyDown={ (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-          e.currentTarget.blur();
-        }
-      } }
-    />
-  );
+  return <input className={ className }
+    type="text"
+    name={ name }
+    value={ draft }
+    placeholder={ placeholder }
+    spellCheck={ false }
+    onChange={ e => setDraft(e.target.value) }
+    onBlur={ commit }
+    onKeyDown={ (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.currentTarget.blur();
+      }
+    } }
+  />;
 }
 
 interface Pair {
@@ -148,40 +146,38 @@ function PairFields({ label, param, onChange }: {
   const patch = (id: number, values: Partial<Pair>) =>
     commit(pairs.map(pair => (pair.id === id ? { ...pair, ...values } : pair)));
 
-  return (
-    <div className="rule-pairs">
-      { pairs.map(pair => (
-        <div className="rule-pair" key={ pair.id }>
-          <TextField className="text-input pair-name"
-            name="name"
-            value={ pair.name }
-            placeholder="name"
-            onCommit={ name => patch(pair.id, { name }) }
-          />
-          <TextField className="text-input pair-value"
-            name="value"
-            value={ pair.value }
-            placeholder="value"
-            onCommit={ value => patch(pair.id, { value }) }
-          />
-          <button type="button"
-            className="icon micro remove-pair"
-            title="Remove"
-            onClick={ () => commit(pairs.filter(item => item.id !== pair.id)) }
-          >
-            <Icon name="cross" />
-          </button>
-        </div>
-      )) }
-      <button type="button"
-        className="add-pair text text-with-icon"
-        onClick={ () => setPairs([ ...pairs, { id: ++pairId, name: '', value: '' } ]) }
-      >
-        <Icon name="plus" />
-        { label }
-      </button>
-    </div>
-  );
+  return <div className="rule-pairs">
+    { pairs.map(pair => (
+      <div className="rule-pair" key={ pair.id }>
+        <TextField className="text-input pair-name"
+          name="name"
+          value={ pair.name }
+          placeholder="name"
+          onCommit={ name => patch(pair.id, { name }) }
+        />
+        <TextField className="text-input pair-value"
+          name="value"
+          value={ pair.value }
+          placeholder="value"
+          onCommit={ value => patch(pair.id, { value }) }
+        />
+        <button type="button"
+          className="icon micro remove-pair"
+          title="Remove"
+          onClick={ () => commit(pairs.filter(item => item.id !== pair.id)) }
+        >
+          <Icon name="cross" />
+        </button>
+      </div>
+    )) }
+    <button type="button"
+      className="add-pair text text-with-icon"
+      onClick={ () => setPairs([ ...pairs, { id: ++pairId, name: '', value: '' } ]) }
+    >
+      <Icon name="plus" />
+      { label }
+    </button>
+  </div>;
 }
 
 /**

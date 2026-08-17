@@ -85,83 +85,81 @@ export default function ProjectList() {
     });
   }, [ projects, updateProject ]);
 
-  return (
-    <div className="settings-card projects-card">
-      <div className="card-heading">Projects</div>
-      <div className="card-content">
-        { projects.map(item => (
-          <div className="project-item" key={ item.id }>
-            <div className="header">
-              <button type="button"
-                className="open-state icon micro"
-                title={ opens[item.id] ? 'Collapse' : 'Expand' }
-                onClick={ () => toggleOpen(item.id) }
-              >
-                <Icon name={ opens[item.id] ? 'chevron-down' : 'chevron-right' } />
-              </button>
-              <input className="enable"
-                type="checkbox"
-                checked={ item.enable }
-                onChange={ (e: ChangeEvent<HTMLInputElement>) =>
-                  updateProject(item.id, { enable: e.target.checked }) }
-              />
+  return <div className="settings-card projects-card">
+    <div className="card-heading">Projects</div>
+    <div className="card-content">
+      { projects.map(item => (
+        <div className="project-item" key={ item.id }>
+          <div className="header">
+            <button type="button"
+              className="open-state icon micro"
+              title={ opens[item.id] ? 'Collapse' : 'Expand' }
+              onClick={ () => toggleOpen(item.id) }
+            >
+              <Icon name={ opens[item.id] ? 'chevron-down' : 'chevron-right' } />
+            </button>
+            <input className="enable"
+              type="checkbox"
+              checked={ item.enable }
+              onChange={ (e: ChangeEvent<HTMLInputElement>) =>
+                updateProject(item.id, { enable: e.target.checked }) }
+            />
 
-              <span className="name"
-                contentEditable="true"
-                data-placeholder="project name"
-                onBlur={ e => updateProject(item.id, { name: readEditable(e) }) }
-                dangerouslySetInnerHTML={{ __html: item.name }}
-              ></span>
+            <span className="name"
+              contentEditable="true"
+              data-placeholder="project name"
+              onBlur={ e => updateProject(item.id, { name: readEditable(e) }) }
+              dangerouslySetInnerHTML={{ __html: item.name }}
+            ></span>
 
-              <button type="button"
-                className="icon remove-project"
-                title="Remove project"
-                onClick={ () => removeProject(item.id) }
-              >
-                <Icon name="bin" />
-              </button>
-            </div>
-            <div className="content" style={{ display: opens[item.id] ? '' : 'none' }}>
-              <ul>
-                { item.rules.map(rule => (
-                  <li key={rule.id} className="rule-item">
-                    <input className="enable"
-                      type="checkbox"
-                      checked={ rule.enable }
-                      onChange={ (e: ChangeEvent<HTMLInputElement>) =>
-                        updateRule(item.id, rule.id, { enable: e.target.checked }) }
-                    />
-                    <RuleInput rule={ rule }
-                      onChange={ patch => updateRule(item.id, rule.id, patch) }
-                    />
-                    <button type="button"
-                      className="icon remove-rule"
-                      title="Remove rule"
-                      onClick={ () => removeRule(item.id, rule.id) }
-                    >
-                      <Icon name="bin" />
-                    </button>
-                  </li>
-                )) }
-              </ul>
-              <button type="button"
-                className="add-rule text text-with-icon"
-                onClick={ () => addRule(item.id) }
-              >
-                <Icon name="plus" />
-                Add rule
-              </button>
-            </div>
+            <button type="button"
+              className="icon remove-project"
+              title="Remove project"
+              onClick={ () => removeProject(item.id) }
+            >
+              <Icon name="bin" />
+            </button>
           </div>
-        ))}
-      </div>
-      <button type="button"
-        className="add-project text text-with-icon"
-        onClick={ addProject }
-      >
-        <Icon name="plus" />
-        Add project
-      </button>
+          <div className="content" style={{ display: opens[item.id] ? '' : 'none' }}>
+            <ul>
+              { item.rules.map(rule => (
+                <li key={rule.id} className="rule-item">
+                  <input className="enable"
+                    type="checkbox"
+                    checked={ rule.enable }
+                    onChange={ (e: ChangeEvent<HTMLInputElement>) =>
+                      updateRule(item.id, rule.id, { enable: e.target.checked }) }
+                  />
+                  <RuleInput rule={ rule }
+                    onChange={ patch => updateRule(item.id, rule.id, patch) }
+                  />
+                  <button type="button"
+                    className="icon remove-rule"
+                    title="Remove rule"
+                    onClick={ () => removeRule(item.id, rule.id) }
+                  >
+                    <Icon name="bin" />
+                  </button>
+                </li>
+              )) }
+            </ul>
+            <button type="button"
+              className="add-rule text text-with-icon"
+              onClick={ () => addRule(item.id) }
+            >
+              <Icon name="plus" />
+              Add rule
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
-  );
+    <button type="button"
+      className="add-project text text-with-icon"
+      onClick={ addProject }
+    >
+      <Icon name="plus" />
+      Add project
+    </button>
+  </div>;
 }
