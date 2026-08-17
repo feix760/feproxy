@@ -33,7 +33,7 @@ export default function RuleInput({ rule, onChange }: {
       onChange={ e => onChange({ type: e.target.value, param: {} }) }
     >
       { !type && <option value="">protocol</option> }
-      { types.map(item => <option key={ item } value={ item }>{ item === 'http' ? 'http(s)' : item }://</option>) }
+      { types.map(item => <option key={ item } value={ item }>{ item === 'http' ? 'http(s)' : item }</option>) }
     </select>
     <div className="rule-param">
       { type && (def.pairs
