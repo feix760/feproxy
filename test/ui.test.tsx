@@ -134,19 +134,22 @@ describe('site router test', () => {
   test('toggle settings switch', async () => {
     // https is on by default, so the ignoreCertError switch is there from the start
     const switches = () => container.querySelectorAll('.settings-item .enable');
-    expect(switches().length).toEqual(3);
+    expect(switches().length).toEqual(4);
 
     fireEvent.click(switches()[1]);
     expect((switches()[1] as HTMLInputElement).checked).toEqual(true);
 
-    // inspect only reports the effective value: it is set with --no-inspect / config.json, and
-    // setConfig drops it (see the site suite). jsdom still flips a disabled checkbox on a
-    // synthetic click, so there is nothing to assert here beyond the attribute.
+    // inspect and auth only report the effective value: both are set at startup, and setConfig
+    // drops them (see the site suite). jsdom still flips a disabled checkbox on a synthetic click,
+    // so there is nothing to assert here beyond the attribute.
     expect((switches()[2] as HTMLInputElement).disabled).toEqual(true);
+    expect((switches()[3] as HTMLInputElement).disabled).toEqual(true);
+    // auth is off in the test app, and its credentials never reach the page
+    expect((switches()[3] as HTMLInputElement).checked).toEqual(false);
 
     fireEvent.click(switches()[0]);
     // Turning https off makes the ignoreCertError switch disappear
-    expect(switches().length).toEqual(2);
+    expect(switches().length).toEqual(3);
 
     await act(async () => {
       await flushConfig();

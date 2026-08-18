@@ -20,6 +20,8 @@ export interface ConfigState {
   https?: boolean;
   ignoreCertError?: boolean;
   inspect?: boolean;
+  /** Whether proxy authentication is on; the server never sends the credentials */
+  auth?: { enable: boolean };
   devtoolsURL?: string;
   [key: string]: any;
 }

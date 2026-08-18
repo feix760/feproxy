@@ -62,7 +62,8 @@ feproxy --auth --username me --password pwd   # require proxy credentials
 ```
 
 Authentication applies to proxied traffic only — the inspect page, `/feproxy.crt` and the
-other FeProxy endpoints stay open. Credentials cannot be changed from the inspect page.
+other FeProxy endpoints stay open. The inspect page shows a read-only switch for whether
+authentication is on; the credentials are never sent to it and cannot be changed from it.
 
 ### Rules
 

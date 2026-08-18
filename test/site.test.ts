@@ -54,8 +54,9 @@ describe('site router test', () => {
 
     expect(data.port).toEqual(app.config.port);
     expect(data.devtoolsURL).toContain(`:${app.config.port}/ws`);
-    // Proxy credentials are never sent to the frontend
     expect(data.projects).toEqual(app.config.projects);
+    // Only whether auth is on: the credentials are never sent to the frontend
+    expect(data.auth).toEqual({ enable: false });
   });
 
   test('set config', async () => {
@@ -71,6 +72,8 @@ describe('site router test', () => {
     // Capturing is a startup decision, so the API drops it instead of writing it
     expect(data.inspect).toEqual(true);
     expect(app.config.inspect).toEqual(true);
+    // The answer is sanitized the same way as getConfig's
+    expect(data.auth).toEqual({ enable: false });
 
     await app.config.update({ ignoreCertError: false });
   });

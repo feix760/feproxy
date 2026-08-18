@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import ip from 'ip';
 import ServerFactory from '../server/ServerFactory';
+import type ProxyConfig from '../util/ProxyConfig';
 import type { ConfigData } from '../util/ProxyConfig';
 import type { ProxyContext } from '../types';
 
@@ -34,18 +35,31 @@ export const log = async (ctx: ProxyContext) => {
   ctx.status = 204;
 };
 
+/**
+ * The config as the admin page is allowed to see it: proxy credentials never leave the server, so
+ * `auth` is reduced to whether it is on (the page shows that as a read-only switch).
+ */
+const publicConfig = (config: ProxyConfig) => {
+  const { auth, ...rest } = config;
+
+  return {
+    ...rest,
+    auth: { enable: !!auth?.enable },
+  };
+};
+
 export const setConfig = async (ctx: ProxyContext) => {
   // koa-body types body as JsonValue; here it can only be a setConfig object
   await ctx.app.config.update(ctx.request.body as Partial<ConfigData>);
 
-  ctx.body = ctx.app.config;
+  ctx.body = publicConfig(ctx.app.config);
 };
 
 export const getConfig = async (ctx: ProxyContext) => {
   const { config } = ctx.app;
 
   ctx.body = {
-    ...config,
+    ...publicConfig(config),
 
     // We only use the network panel; the panel param makes devtools open on Network
     devtoolsURL: `/devtools/inspector.html?ws=${ip.address()}:${config.port}/ws&panel=network`,

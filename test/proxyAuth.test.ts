@@ -62,6 +62,13 @@ describe('proxy auth test', () => {
     expect(response.status).toEqual(200);
   });
 
+  test('getConfig reports auth as on without the credentials', async () => {
+    const data = await (await fetch(getSiteURL())).json();
+
+    // The admin page shows this as a read-only switch, so it needs the flag and nothing else
+    expect(data.auth).toEqual({ enable: true });
+  });
+
   test('https site url without credentials should pass', async () => {
     const response = await fetch(getSiteURL(true), {
       agent: util.insecureAgent,
