@@ -88,9 +88,9 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: devMode ? 'lib/[name].css' : 'lib/[name].[contenthash:8].css',
     }),
-    new webpack.ProgressPlugin(),
+    process.stdout.isTTY && new webpack.ProgressPlugin(),
     new CopyWebpackPlugin({
       patterns: [ { from: 'src/frontend/asset' } ],
     }),
-  ],
+  ].filter(Boolean),
 };

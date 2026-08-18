@@ -4,7 +4,7 @@
   "description": "An node proxy server for web development",
   "scripts": {
     "start": "cross-env NODE_ENV=production node lib/index.js",
-    "dev": "concurrently \"tsc -w --preserveWatchOutput\" \"webpack -w\" \"sleep 3 && nodemon --watch lib --ext js --ignore lib/public/ lib/index.js\"",
+    "dev": "concurrently \"tsc -w --preserveWatchOutput\" \"webpack -w\" \"sleep 2 && nodemon --watch lib --ext js --ignore lib/public/ --delay 500ms lib/index.js\"",
     "build": "npm run build:ts && npm run build:web",
     "build:ts": "tsc",
     "build:web": "cross-env NODE_ENV=production webpack",
