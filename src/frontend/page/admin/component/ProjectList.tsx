@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import './ProjectList.less';
 import { useConfig, useConfigActions } from '../config/ConfigContext';
 import type { Project } from '../types';

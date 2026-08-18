@@ -1,3 +1,4 @@
+import React from 'react';
 import './AddButton.less';
 import Icon from './Icon';
 

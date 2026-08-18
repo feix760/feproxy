@@ -17,6 +17,7 @@ jest.mock('../src/frontend/page/admin/config/configApi', () => ({
   flushConfig: () => Promise.resolve(),
 }));
 
+import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
 import ProjectList from '../src/frontend/page/admin/component/ProjectList';
 import { ConfigProvider, useConfig, useConfigActions } from '../src/frontend/page/admin/config/ConfigContext';

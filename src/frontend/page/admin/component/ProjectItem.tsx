@@ -1,3 +1,4 @@
+import React from 'react';
 import './ProjectItem.less';
 import type { Project, Rule } from '../types';
 import RuleItem from './RuleItem';

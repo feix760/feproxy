@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './PairFields.less';
 import type { RuleParam } from '../types';
 import { toText } from './ruleTypes';

@@ -1,3 +1,4 @@
+import React from 'react';
 import './Card.less';
 import type { ReactNode } from 'react';
 

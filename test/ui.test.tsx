@@ -5,6 +5,7 @@
 // exists and then blows up; it is only a node<10 fallback and unused here.
 jest.mock('brotli', () => ({ decompress: () => Buffer.alloc(0) }));
 
+import React from 'react';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import App from '../src/frontend/page/admin/component/App';
 import { ConfigProvider } from '../src/frontend/page/admin/config/ConfigContext';

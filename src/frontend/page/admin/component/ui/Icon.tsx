@@ -1,3 +1,5 @@
+import React from 'react';
+
 // devtools' 20x20 Material Symbols icons; path data taken straight from
 // node_modules/@chrome-devtools/inspector/{cross,plus,bin,chevron-down,chevron-right,gear,info}.svg.
 // Inlined rather than pulled from an icon font, so we share devtools' shapes and can tint them

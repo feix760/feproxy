@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './App.less';
 import { useConfig, useConfigActions } from '../config/ConfigContext';
 import SettingsDialog from './SettingsDialog';

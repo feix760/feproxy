@@ -1,3 +1,5 @@
+import React from 'react';
+
 /** The enable checkbox used by every togglable row; styled globally in theme.less. */
 export default function Checkbox({ checked, disabled, onChange }: {
   checked: boolean;

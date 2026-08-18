@@ -1,3 +1,4 @@
+import React from 'react';
 import './RuleItem.less';
 import type { Rule } from '../types';
 import RuleInput from './RuleInput';

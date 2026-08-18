@@ -1,3 +1,4 @@
+import React from 'react';
 import './SettingsDialog.less';
 import PreferencesCard from './PreferencesCard';
 import ProjectList from './ProjectList';

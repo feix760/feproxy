@@ -1,3 +1,4 @@
+import React from 'react';
 import './RuleInput.less';
 import type { Rule } from '../types';
 import PairFields from './PairFields';
