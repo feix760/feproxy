@@ -78,7 +78,7 @@ We implement a subset of CDP ourselves: `Inspector` owns multiple `Client`s (one
 
 **`Network.streamResourceContent` is the exception — it must never return an error.** The frontend picks between `getResponseBody` and `streamResourceContent` based on whether the request has finished transferring, **and the result is cached** — returning an error means that request's Preview/Response stays empty forever (the SSE message view always goes through this path). gzip has to be decoded as a whole so it can't be delivered chunk by chunk; `bodyWaiters` parks a waiter until the response body is fully read and then answers in one shot, waiting at most `STREAM_TIMEOUT` (30s, unref'd). Likewise `Network.dataReceived` must carry `encodedDataLength` — the frontend only accumulates when it is `!== -1`, and omitting it produces NaN.
 
-`config.inspect` (default `true`) is the master capture switch: when falsy the inspect middleware just calls `next()`, emitting no events and reading no bodies, so the devtools UI still works but shows no requests. Toggle it with `--no-inspect`, the admin panel, or `/setConfig`.
+`config.inspect` (default `true`) is the master capture switch: when falsy the inspect middleware just calls `next()`, emitting no events and reading no bodies, so the devtools UI still works but shows no requests. It is a **startup-only** setting: `--no-inspect` or `inspect` in `config.json`. `ProxyConfig.update()` strips the field, so `/setConfig` can't change it, and the admin panel renders its switch disabled (read-only, still showing the effective value).
 
 #### devtools frontend (`@chrome-devtools/inspector` + `src/controller/devtools.ts`)
 
@@ -96,7 +96,7 @@ Basic proxy auth with credentials **hardcoded** in `auth` in `defaultConfig.ts` 
 
 ### 8. Configuration (`src/util/ProxyConfig.ts`) and CLI (`src/cli.ts`)
 
-Precedence: `defaultConfig.ts` ← `~/.feproxy/config.json` ← the `createApp(config)` argument. `App.ts` merges with `pickDefined()` to drop `undefined` values (the `auth` sub-object is merged once more on its own). `ProxyConfig.update()` persists `inspect/projects/https/ignoreCertError` to disk and rebuilds the rules. A built-in rule forwards `http(s)://feproxy.org/*` to the local server — that's why `src/frontend/asset/log.js` (piping page console output to the terminal) works.
+Precedence: `defaultConfig.ts` ← `~/.feproxy/config.json` ← the `createApp(config)` argument. `App.ts` merges with `pickDefined()` to drop `undefined` values (the `auth` sub-object is merged once more on its own). `ProxyConfig.update()` persists `projects/https/ignoreCertError` to disk and rebuilds the rules; it strips `auth` and `inspect` from the payload, and doesn't write `inspect` back either (a hand-written one in `config.json` survives through the read-merge-write), so a one-off `--no-inspect` run never becomes permanent. A built-in rule forwards `http(s)://feproxy.org/*` to the local server — that's why `src/frontend/asset/log.js` (piping page console output to the terminal) works.
 
 The CLI uses yargs to map arguments one-to-one onto the fields of `defaultConfig.ts` and passes them to `createApp()`. **When adding a config field, remember to add the matching CLI argument.**
 

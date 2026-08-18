@@ -6,4 +6,10 @@
   line-height: var(--typescale-body3-line-height);
   color: var(--sys-color-on-surface);
   cursor: pointer;
+
+  // A read-only switch still shows its value, so only the label is dimmed
+  &.disabled {
+    color: var(--sys-color-state-disabled);
+    cursor: default;
+  }
 }

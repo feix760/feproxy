@@ -105,8 +105,9 @@ In `config.json` a rule is `{ enable, match, type, param }`, where `type` is the
 }
 ```
 
-`config.json` is also where `https` / `ignoreCertError` / `inspect` are persisted when you
-toggle them on the inspect page. Precedence is defaults ← `config.json` ← CLI options.
+`config.json` is also where `https` / `ignoreCertError` are persisted when you toggle them on
+the inspect page. `inspect` is startup-only — set it here or with `--no-inspect`; the inspect
+page shows it read-only. Precedence is defaults ← `config.json` ← CLI options.
 
 ### Development
 

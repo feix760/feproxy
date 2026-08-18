@@ -139,8 +139,10 @@ describe('site router test', () => {
     fireEvent.click(switches()[1]);
     expect((switches()[1] as HTMLInputElement).checked).toEqual(true);
 
-    fireEvent.click(switches()[2]);
-    expect((switches()[2] as HTMLInputElement).checked).toEqual(false);
+    // inspect only reports the effective value: it is set with --no-inspect / config.json, and
+    // setConfig drops it (see the site suite). jsdom still flips a disabled checkbox on a
+    // synthetic click, so there is nothing to assert here beyond the attribute.
+    expect((switches()[2] as HTMLInputElement).disabled).toEqual(true);
 
     fireEvent.click(switches()[0]);
     // Turning https off makes the ignoreCertError switch disappear
@@ -151,7 +153,7 @@ describe('site router test', () => {
     });
     expect(app.config.https).toEqual(false);
     expect(app.config.ignoreCertError).toEqual(true);
-    expect(app.config.inspect).toEqual(false);
+    expect(app.config.inspect).toEqual(true);
   });
 
   test('set config', async () => {

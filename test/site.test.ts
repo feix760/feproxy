@@ -62,13 +62,17 @@ describe('site router test', () => {
     const response = await fetch(`${util.getURL(app)}setConfig`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ inspect: false }),
+      body: JSON.stringify({ ignoreCertError: true, inspect: false }),
     });
+    const data = await response.json();
 
-    expect((await response.json()).inspect).toEqual(false);
-    expect(app.config.inspect).toEqual(false);
+    expect(data.ignoreCertError).toEqual(true);
+    expect(app.config.ignoreCertError).toEqual(true);
+    // Capturing is a startup decision, so the API drops it instead of writing it
+    expect(data.inspect).toEqual(true);
+    expect(app.config.inspect).toEqual(true);
 
-    await app.config.update({ inspect: true });
+    await app.config.update({ ignoreCertError: false });
   });
 
   test('set config with broken body', async () => {

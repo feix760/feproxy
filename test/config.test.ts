@@ -98,31 +98,35 @@ describe('ProxyConfig test', () => {
     await config.update({
       projects: [ { name: 'p', enable: true, rules: [] } ],
       https: false,
-      inspect: false,
       // credentials can't be changed through the API
       auth: { enable: true, username: 'a', password: 'b' },
+      // capturing is a startup decision, so it can't be changed through the API either
+      inspect: false,
       // other fields only take effect in memory
       port: 1234,
     });
 
     expect(config.https).toEqual(false);
-    expect(config.inspect).toEqual(false);
     expect(config.port).toEqual(1234);
     expect(config.auth).toEqual(defaultConfig.auth);
+    expect(config.inspect).toEqual(defaultConfig.inspect);
 
+    // inspect is not written back either, so `--no-inspect` never becomes permanent
     expect(await fs.readJson(config.RC_PATH)).toEqual({
       projects: [ { name: 'p', enable: true, rules: [] } ],
       https: false,
       ignoreCertError: defaultConfig.ignoreCertError,
-      inspect: false,
     });
   });
 
   test('update keeps unknown fields in config.json', async () => {
-    const config = await createConfig(JSON.stringify({ custom: 1 }));
+    const config = await createConfig(JSON.stringify({ custom: 1, inspect: false }));
     await config.update({ https: false });
 
-    expect((await fs.readJson(config.RC_PATH)).custom).toEqual(1);
+    const rcConfig = await fs.readJson(config.RC_PATH);
+    expect(rcConfig.custom).toEqual(1);
+    // A hand-written inspect is the only way to persist it, so it has to survive a write
+    expect(rcConfig.inspect).toEqual(false);
   });
 
   test('update overwrites broken config.json', async () => {

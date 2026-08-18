@@ -18,7 +18,7 @@ export interface ConfigData {
   port: string | number;
   https: boolean;
   ignoreCertError: boolean;
-  /** Master switch for request capturing */
+  /** Master switch for request capturing, only settable at startup (see update()) */
   inspect: boolean;
   auth?: AuthConfig;
   projects: Project[];
@@ -68,6 +68,8 @@ class ProxyConfig {
     const update = { ...config };
     // Credentials are hardcoded in defaultConfig.ts and can't be changed through the API
     delete update.auth;
+    // Capturing is a startup decision (--no-inspect / config.json), so it is read-only here too
+    delete update.inspect;
     Object.assign(this, update);
 
     this.updateRules();
@@ -82,12 +84,14 @@ class ProxyConfig {
       console.warn('Read config error', err);
     }
 
+    // inspect is deliberately not persisted: it is never updated through the API, so writing the
+    // in-memory value back would turn a one-off `--no-inspect` run into a permanent setting with no
+    // way to undo it from the UI. A hand-written one survives through rcConfig.
     await fs.outputJson(this.RC_PATH, {
       ...rcConfig,
       projects: this.projects,
       https: this.https,
       ignoreCertError: this.ignoreCertError,
-      inspect: this.inspect,
     });
   }
 
