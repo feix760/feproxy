@@ -52,10 +52,13 @@ describe('site router test', () => {
     const response = await fetch(`${util.getURL(app)}getConfig`);
     const data = await response.json();
 
-    expect(data.port).toEqual(app.config.port);
     expect(data.devtoolsURL).toContain(`:${app.config.port}/ws`);
+    // A whitelist of what the page reads: only whether auth is on, and nothing else at all — no
+    // credentials, no RC_DIR, no port
+    expect(Object.keys(data).sort()).toEqual(
+      [ 'auth', 'devtoolsURL', 'https', 'ignoreCertError', 'inspect', 'projects' ],
+    );
     expect(data.projects).toEqual(app.config.projects);
-    // Only whether auth is on: the credentials are never sent to the frontend
     expect(data.auth).toEqual({ enable: false });
   });
 
@@ -72,7 +75,10 @@ describe('site router test', () => {
     // Capturing is a startup decision, so the API drops it instead of writing it
     expect(data.inspect).toEqual(true);
     expect(app.config.inspect).toEqual(true);
-    // The answer is sanitized the same way as getConfig's
+    // The answer goes through the same whitelist as getConfig's, minus devtoolsURL
+    expect(Object.keys(data).sort()).toEqual(
+      [ 'auth', 'https', 'ignoreCertError', 'inspect', 'projects' ],
+    );
     expect(data.auth).toEqual({ enable: false });
 
     await app.config.update({ ignoreCertError: false });

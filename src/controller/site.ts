@@ -36,17 +36,18 @@ export const log = async (ctx: ProxyContext) => {
 };
 
 /**
- * The config as the admin page is allowed to see it: proxy credentials never leave the server, so
- * `auth` is reduced to whether it is on (the page shows that as a read-only switch).
+ * The config as the admin page is allowed to see it — a whitelist, so nothing the page has no use
+ * for (RC_DIR, hostname, port, the rule cache...) leaks out. `auth` is reduced to whether it is on:
+ * the credentials never leave the server, the page only shows a read-only switch. Add a field here
+ * when the page starts reading it.
  */
-const publicConfig = (config: ProxyConfig) => {
-  const { auth, ...rest } = config;
-
-  return {
-    ...rest,
-    auth: { enable: !!auth?.enable },
-  };
-};
+const publicConfig = (config: ProxyConfig) => ({
+  projects: config.projects,
+  https: config.https,
+  ignoreCertError: config.ignoreCertError,
+  inspect: config.inspect,
+  auth: { enable: !!config.auth?.enable },
+});
 
 export const setConfig = async (ctx: ProxyContext) => {
   // koa-body types body as JsonValue; here it can only be a setConfig object
