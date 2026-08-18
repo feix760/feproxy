@@ -23,5 +23,7 @@ export interface ConfigState {
   /** Whether proxy authentication is on; the server never sends the credentials */
   auth?: { enable: boolean };
   devtoolsURL?: string;
+  /** Path the root certificate is downloaded from, relative to feproxy's own site */
+  crtURL?: string;
   [key: string]: any;
 }

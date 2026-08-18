@@ -64,5 +64,9 @@ export const getConfig = async (ctx: ProxyContext) => {
 
     // We only use the network panel; the panel param makes devtools open on Network
     devtoolsURL: `/devtools/inspector.html?ws=${ip.address()}:${config.port}/ws&panel=network`,
+
+    // Relative, so it stays valid whichever host the page was opened from; the route lives on
+    // feproxy's own site (see router.ts)
+    crtURL: '/feproxy.crt',
   };
 };

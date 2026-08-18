@@ -1,10 +1,16 @@
 .settings-item {
   display: flex;
   align-items: center;
-  gap: var(--size-5);
+  gap: var(--size-3);
   font-size: var(--typescale-body3-size);
   line-height: var(--typescale-body3-line-height);
   color: var(--sys-color-on-surface);
+}
+
+.settings-label {
+  display: flex;
+  align-items: center;
+  gap: var(--size-5);
   cursor: pointer;
 
   // A read-only switch still shows its value, so only the label is dimmed

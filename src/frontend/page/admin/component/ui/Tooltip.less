@@ -1,0 +1,65 @@
+.tooltip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--icon-default);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--size-2) solid var(--sys-color-state-focus-ring);
+    outline-offset: var(--size-2);
+    border-radius: var(--sys-shape-corner-extra-small);
+  }
+
+  .devtools-icon {
+    width: var(--size-8);
+    height: var(--size-8);
+  }
+
+  // Nested in the anchor, so :hover still holds while the pointer is inside the bubble and the
+  // tooltip stays open; ::before covers the 4px gap between the two, which the pointer would
+  // otherwise cross through nothing.
+  .tooltip-content {
+    position: absolute;
+    top: calc(100% + var(--size-3));
+    left: 0;
+    z-index: 1;
+    visibility: hidden;
+    box-sizing: border-box;
+    width: max-content;
+    // devtools lets a tooltip run to nearly the window width; ours hold whole sentences, so they
+    // wrap at the width of the narrowest card instead
+    max-width: var(--size-35);
+    padding: var(--size-4) var(--size-5);
+    border-radius: var(--sys-shape-corner-small);
+    background: var(--sys-color-base-container-elevated);
+    color: var(--sys-color-on-surface);
+    box-shadow: var(--sys-elevation-level2);
+    font-size: var(--typescale-body4-size);
+    font-weight: var(--typeface-weight-regular);
+    line-height: var(--typescale-body4-line-height);
+    text-align: left;
+    cursor: default;
+
+    // Same treatment devtools gives links inside a rich tooltip
+    a {
+      color: var(--sys-color-primary);
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: calc(-1 * var(--size-3));
+      left: 0;
+      right: 0;
+      height: var(--size-3);
+    }
+  }
+
+  &:hover .tooltip-content,
+  &:focus-within .tooltip-content {
+    visibility: visible;
+  }
+}

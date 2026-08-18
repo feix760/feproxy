@@ -70,10 +70,13 @@
   --sys-color-on-tonal-container: #041e49;         // ref-palette-primary10
   --sys-color-green: #1e8e3e;                      // ref-palette-green40
   --sys-color-state-focus-ring: #0b57d0;           // ref-palette-primary40
+  // devtools' default icon tint: --icon-default → --sys-color-on-surface-subtle (#474747 here,
+  // #c7c7c7 in dark mode, so it stays readable on both cards)
+  --icon-default: var(--sys-color-on-surface-subtle);
   --sys-color-state-disabled: rgba(31, 31, 31, 0.38);                 // neutral10 38%
   --sys-color-state-hover-on-subtle: rgba(31, 31, 31, 0.06);          // neutral10 6%
   --sys-color-state-ripple-neutral-on-subtle: rgba(31, 31, 31, 0.08); // neutral10 8%
-  --app-color-card-background: #ffffff;            // base-container-elevated → neutral100
+  --sys-color-base-container-elevated: #ffffff;    // ref-palette-neutral100
   --app-color-card-divider: rgba(0, 0, 0, 0.06);   // neutral0 6%
 }
 
@@ -94,8 +97,9 @@
     --sys-color-state-disabled: rgba(227, 227, 227, 0.38);                 // neutral90 38%
     --sys-color-state-hover-on-subtle: rgba(253, 252, 251, 0.1);           // neutral99 10%
     --sys-color-state-ripple-neutral-on-subtle: rgba(253, 252, 251, 0.16); // neutral99 16%
-    // surface2 = color-mix(in srgb, primary80 8%, neutral10), precomputed
-    --app-color-card-background: #2a2c31;
+    // dark mode maps base-container-elevated to surface2 =
+    // color-mix(in srgb, primary80 8%, neutral10), precomputed
+    --sys-color-base-container-elevated: #2a2c31;
     --app-color-card-divider: rgba(255, 255, 255, 0.1);
   }
 }

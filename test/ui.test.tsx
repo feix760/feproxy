@@ -173,4 +173,26 @@ describe('site router test', () => {
     // ...and the server hands the same value back
     expect((await fetchConfig()).https).toEqual(true);
   });
+
+  test('every preference explains itself', () => {
+    const items = container.querySelectorAll('.settings-item');
+    expect(items.length).toBeGreaterThan(0);
+
+    items.forEach(item => {
+      // Each row carries an info icon whose tooltip says what the switch does — the field names on
+      // their own ("https", "inspect") don't
+      const tooltip = item.querySelector('.tooltip');
+      expect(tooltip.querySelector('svg')).toBeTruthy();
+      expect(tooltip.querySelector('.tooltip-content').textContent.length).toBeGreaterThan(20);
+    });
+  });
+
+  test('https hint links to the certificate', async () => {
+    // Decrypting only works once the root certificate is installed on the client, so the hint ends
+    // in a link to the download, opened in a new tab so the settings page stays put
+    const link = container.querySelector('.settings-item .tooltip-content a') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toEqual((await fetchConfig()).crtURL);
+    expect(link.target).toEqual('_blank');
+    expect(link.textContent.trim().length).toBeGreaterThan(0);
+  });
 });
