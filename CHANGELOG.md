@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.10.2](https://github.com/feix760/feproxy/compare/v3.10.1...v3.10.2) (2026-08-18)
+
+
+### Bug Fixes
+
+* disabled to modify inspect ([7148d18](https://github.com/feix760/feproxy/commit/7148d18294a10786ae0e74d56fddad6cad5966e7))
+* display auth state ([b60d9c8](https://github.com/feix760/feproxy/commit/b60d9c8ac4deddd92d67a2976bb3f76322798cca))
+* hide config fields to frontend ([13c01df](https://github.com/feix760/feproxy/commit/13c01dfb366ee531b5ae62082c1a7559cc08b19e))
+
 ### [3.10.1](https://github.com/feix760/feproxy/compare/v3.10.0...v3.10.1) (2026-08-17)
 
 
